@@ -1,0 +1,23 @@
+# NAME
+
+Data::Edit::Struct - Edit a Perl structure
+
+# VERSION
+
+version 0.01
+
+# SYNOPSIS
+
+# SEE ALSO
+
+# AUTHOR
+
+Diab Jerius <djerius@cpan.org>
+
+# COPYRIGHT AND LICENSE
+
+This software is Copyright (c) 2017 by Smithsonian Astrophysical Observatory.
+
+This is free software, licensed under:
+
+    The GNU General Public License, Version 3, June 2007
