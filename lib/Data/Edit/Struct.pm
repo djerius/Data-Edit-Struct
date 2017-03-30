@@ -20,6 +20,8 @@ use Scalar::Util qw[ refaddr ];
 use Params::ValidationCompiler qw[ validation_for ];
 use Types::Standard -types;
 
+use Data::DPath qw[ dpath ];
+
 use Carp;
 
 our @EXPORT_OK = qw[ edit ];
@@ -30,7 +32,7 @@ my %dest = (
 );
 
 my %use_dest_as
-  = ( use_dest_as => { type => Enum [ 'idx', 'ref' ], default => 'auto' } );
+  = ( use_dest_as => { type => Enum [ 'idx', 'container' ], default => 'auto' } );
 
 my %source = (
     source        => { type => Context,     optional => 1 },
@@ -41,12 +43,13 @@ my %source = (
 my %length = ( length => { type => Int, default  => 1 } );
 my %offset = ( offset => { type => Int, optional => 1 } );
 
+my %multimode = ( multimode => { type => Enum [ 'iterate', 'array', 'hash', 'error' ], default => 'error'  } );
 
 my %Validation = (
     pop    => { %dest, %length },
     shift  => { %dest, %length },
-    splice => { %dest, %length, %offset, %source, %use_dest_as },
-    insert => { %dest, %length, %offset, %source, %use_dest_as },
+    splice => { %dest, %length, %offset, %source, %use_dest_as, %multimode },
+    insert => { %dest, %length, %offset, %source, %use_dest_as, %multimode  },
     delete => {
         %dest,
         use_dest_as => {
@@ -77,39 +80,68 @@ sub edit ( $action, %request ) {
     my $src;
 
     if ( exists $arg{src} ) {
-        my $ctx = dup_context( $arg{src} );
-        my @src = $ctx->search( $arg{spath} );
-        croak( "source path may not have multiple resolutions\n" )
-          if @src > 1;
 
-        my $value = pop @src;
 
-        my $use = $arg{use_source_as};
-        $use = is_ref( $value ) ? 'ref' : 'value'
-          if $use eq 'auto';
+        for ( $arg{multimode} ) {
 
-        $src
-          = $arg{use_source_as} eq 'value' ? [$value]
-          : is_arrayref( $value )          ? $value
-          : is_hashref( $value )           ? [%$value]
-          : is_scalarref( $value )         ? [$$value]
-          : croak( "don't know how to dereference thing of ref '",
-            ref $value, "\n" );
+            when ( 'array' ) {
+                $src = [ [ dup_context( $arg{src} )->matchr( $arg{spath} ) ] ];
+            }
+
+            when ( 'hash' ) {
+
+                my %src;
+
+                for my $point ( dup_context( $arg{src} )->_search( $arg{spath} )
+                    ->current_points )
+                {
+
+                    my $attr = $point->attr;
+                    my $key = $attr->{key} // $attr->{idx}
+                      or croak(
+                        "source path returned multiple values; unable to convert into hash as element has no `key' or `idx' attribute\n"
+                      );
+                    $src{$key} = $point->deref->$*;
+                }
+
+                $src = [ \%src ];
+            }
+
+            when ( 'iterate' ) {
+                $src = [ dup_context( $arg{src} )->matchr( $arg{spath} ) ];
+            }
+
+            default {
+
+                my @src = dup_context( $arg{src} )->matchr( $arg{spath} );
+
+                croak( "source path may not have multiple resolutions\n" )
+                  if @src > 1;
+
+                $src = [ $src[0] ];
+
+            }
+
+        }
+
     }
 
-    my $iter = dup_context( $arg{dest} )->isearch( $arg{dpath} );
+    my $points
+      = dup_context( $arg{dest} )->_search( dpath($arg{dpath}) )->current_points;
 
 
     for ( $action ) {
 
         when ( 'pop' ) {
 
-            while ( $iter->isnt_exhausted ) {
+            for my $point ( @$points ) {
+
+                my $dest = $point->ref->$*;
                 croak( "pop destination is not an array\n" )
-                  unless is_arrayref( $arg{dest} );
-		my $dest = $iter->value->deref;
-		my $length = $arg{length};
-		$length = @$dest if $length > @$dest;
+                  unless is_arrayref( $dest );
+
+                my $length = $arg{length};
+                $length = @$dest if $length > @$dest;
                 splice( @$dest, -$length, $length );
             }
 
@@ -117,8 +149,8 @@ sub edit ( $action, %request ) {
 
         when ( 'shift' ) {
 
-            while ( $iter->isnt_exhausted ) {
-                my $dest = $iter->value->deref;
+            for my $point ( @$points ) {
+                my $dest = $point->ref->$*;
                 croak( "pop destination is not an array\n" )
                   unless is_arrayref( $dest );
                 splice( @$dest, 0, $arg{length} );
@@ -127,33 +159,64 @@ sub edit ( $action, %request ) {
         }
 
         when ( 'splice' ) {
-            _splice( $arg{use_dest_as}, $iter,
-                $arg{offset}, $arg{length}, $arg{src} );
+
+            _splice( $arg{use_dest_as}, $points, $arg{offset}, $arg{length}, $_ )
+	      foreach @$src;
         }
 
         when ( 'insert' ) {
-            _insert( $arg{use_dest_as}, $iter, $arg{offset}, $arg{length},
-                $arg{src} );
+            _insert( $arg{use_dest_as}, $points, $arg{offset}, $arg{length}, $_ )
+	      foreach @$src;
         }
 
 
         when ( 'delete' ) {
-            _delete( $iter );
+            _delete( $points );
         }
 
         when ( 'replace' ) {
-            _replace( $iter, $arg{use_dest_as}, $arg{src} );
+            _replace( $points, $arg{use_dest_as}, $arg{src} ),
+	      foreach @$src;
         }
     }
 
 }
 
 
-sub _splice ( $use_dest_as, $iter, $offset, $length, $replace ) {
+sub _deref ( $use_source_as, $value ) {
 
-    while ( $iter->isnt_exhausted ) {
+    my $use = $use_source_as;
+    $use = is_ref( $value ) ? 'container' : 'value'
+      if $use eq 'auto';
 
-        my $point = $iter->value;
+    for ( $use ) {
+
+        when ( 'value' ) {
+
+            return [$value];
+        }
+
+        when ( 'container' ) {
+
+            return
+                is_arrayref( $value )  ? $value
+              : is_hashref( $value )   ? [%$value]
+              : is_scalarref( $value ) ? [$$value]
+	      : croak( "\$value is not an array, hash, or scalar reference\n" );
+        }
+
+        default {
+
+            croak( "unknown mode to use source in: $_\n" );
+        }
+
+    }
+}
+
+sub _splice ( $use_dest_as, $points, $offset, $length, $replace ) {
+
+    for my $point ( @$points )  {
+
         my $ref;
 
         my $idx = $point->attrs->{idx};
@@ -164,14 +227,14 @@ sub _splice ( $use_dest_as, $iter, $offset, $length, $replace ) {
 
             $ref = $point->ref;
             $use
-              = is_arrayref( $ref ) ? 'ref'
+              = is_arrayref( $ref ) ? 'container'
               : defined $idx        ? 'idx'
               :   croak( "point is neither an array element nor an array ref\n" );
         }
 
         for ( $use ) {
 
-            when ( 'ref' ) {
+            when ( 'container' ) {
                 $ref //= $point->ref;
                 splice( @$ref, $offset, $length, @$replace );
             }
@@ -189,13 +252,11 @@ sub _splice ( $use_dest_as, $iter, $offset, $length, $replace ) {
 }
 
 
-sub _insert ( $use_dest_as, $iter, $offset, $length, $src ) {
+sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
 
-    while ( $iter->isnt_exhausted ) {
+    for my $point ( @$points )  {
 
-        my $point = $iter->value;
         my $ref;
-
         my $idx;
 
         my $use = $use_dest_as;
@@ -204,14 +265,14 @@ sub _insert ( $use_dest_as, $iter, $offset, $length, $src ) {
             $ref = $point->ref;
 
             $use
-              = is_arrayref( $ref ) | is_hashref( $ref ) ? 'ref'
+              = is_arrayref( $ref ) | is_hashref( $ref ) ? 'container'
               : defined( $idx = $point->attrs->{idx} ) ? 'idx'
               :   croak( "point is neither an array element nor an array ref\n" );
         }
 
         for ( $use ) {
 
-            when ( 'ref' ) {
+            when ( 'container' ) {
 
                 $ref //= $point->ref;
 
@@ -252,11 +313,11 @@ sub _insert ( $use_dest_as, $iter, $offset, $length, $src ) {
 
 }
 
-sub _delete ( $iter ) {
+sub _delete ( $points ) {
 
-    while ( $iter->isnt_exhausted ) {
+    for my $point ( @$points )  {
 
-        my $point  = $iter->value;
+
         my $parent = $point->parent->ref->$*;
         my $attr   = $point->attr;
 
@@ -275,11 +336,10 @@ sub _delete ( $iter ) {
 
 }
 
-sub _replace ( $iter, $use_dest_as, $src ) {
+sub _replace ( $points, $use_dest_as, $src ) {
 
-    while ( $iter->isnt_exhausted ) {
+    for my $point ( @$points )  {
 
-        my $point = $iter->value;
 
         for ( $use_dest_as ) {
 

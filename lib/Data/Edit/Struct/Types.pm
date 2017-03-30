@@ -15,7 +15,7 @@ coerce Context,
 from HashRef | ArrayRef | ScalarRef, via sub { dpathi( $_ ) };
 
 declare UseSourceAs,
-  as Enum [ 'value', 'ref', 'auto' ],
+  as Enum [ 'value', 'container', 'auto' ],
   from Str,  q[ $UseSourceAs{$_} // $_ ];
 
 1;
