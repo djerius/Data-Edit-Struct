@@ -20,6 +20,8 @@ use Scalar::Util qw[ refaddr ];
 use Params::ValidationCompiler qw[ validation_for ];
 use Types::Standard -types;
 
+use Carp;
+
 our @EXPORT_OK = qw[ edit ];
 
 my %dest = (
@@ -105,10 +107,10 @@ sub edit ( $action, %request ) {
             while ( $iter->isnt_exhausted ) {
                 croak( "pop destination is not an array\n" )
                   unless is_arrayref( $arg{dest} );
-		my $array = $iter->value->deref;
+		my $dest = $iter->value->deref;
 		my $length = $arg{length};
-		$length = @$array if $length > @$array;
-                splice( @$array, -$length, $length );
+		$length = @$dest if $length > @$dest;
+                splice( @$dest, -$length, $length );
             }
 
         }
@@ -116,10 +118,10 @@ sub edit ( $action, %request ) {
         when ( 'shift' ) {
 
             while ( $iter->isnt_exhausted ) {
-                my $dest = $iter->value->ref;
+                my $dest = $iter->value->deref;
                 croak( "pop destination is not an array\n" )
                   unless is_arrayref( $dest );
-                splice( $iter->value->deref->@*, 0, $arg{length} );
+                splice( @$dest, 0, $arg{length} );
             }
 
         }
