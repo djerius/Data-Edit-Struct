@@ -9,33 +9,39 @@ use Data::Edit::Struct qw[ edit ];
 
 my %dest = (
 
-	      array => [ 0, 10, 20, 40 ],
-	     );
+    array => [ 0, 10, 20, 40 ],
+);
 
 
-edit( shift =>
-      dest => \%dest,
-      dpath => '/array',
-      );
+edit(
+    shift => {
+        dest  => \%dest,
+        dpath => '/array',
+    },
+);
 
 
-is ( $dest{array}, [ 10, 20, 40 ], "shift" );
+is( $dest{array}, [ 10, 20, 40 ], "shift" );
 
-edit( shift =>
-      dest => \%dest,
-      dpath => '/array',
-      length => 2,
-      );
+edit(
+    shift => {
+        dest   => \%dest,
+        dpath  => '/array',
+        length => 2,
+    },
+);
 
-is ( $dest{array}, [ 40 ], "shift 2" );
+is( $dest{array}, [40], "shift 2" );
 
-edit( shift =>
-      dest => \%dest,
-      dpath => '/array',
-      length => 2,
-      );
+edit(
+    shift => {
+        dest   => \%dest,
+        dpath  => '/array',
+        length => 2,
+    },
+);
 
-is ( $dest{array}, [], "shift 2" );
+is( $dest{array}, [], "shift 2" );
 
 
 done_testing;

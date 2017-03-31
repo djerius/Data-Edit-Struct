@@ -72,12 +72,12 @@ sub dup_context ( $context ) {
 }
 
 
-sub edit ( $action, %request ) {
+sub edit ( $action, $request ) {
 
     croak( "no action specified\n" ) unless defined $action;
     my $validator = $Validator{$action} // croak( "unknown acton: $action\n" );
 
-    my %arg = $validator->( %request );
+    my %arg = $validator->( %$request );
 
     my $src;
 
