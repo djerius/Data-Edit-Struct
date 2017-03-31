@@ -40,8 +40,8 @@ my %source = (
     use_source_as => { type => UseSourceAs, default  => 'auto' },
 );
 
-my %length = ( length => { type => Int, default  => 1 } );
-my %offset = ( offset => { type => Int, optional => 1 } );
+my %length = ( length => { type => Int, default => 1 } );
+my %offset = ( offset => { type => IntArray, default => sub { [0] } } );
 
 my %multimode = ( multimode => { type => Enum [ 'iterate', 'array', 'hash', 'error' ], default => 'error'  } );
 
@@ -236,13 +236,15 @@ sub _splice ( $use_dest_as, $points, $offset, $length, $replace ) {
 
             when ( 'container' ) {
                 $ref //= $point->ref;
-                splice( @$ref, $offset, $length, @$replace );
+                splice( @$ref, $_, $length, @$replace )
+                  for reverse sort @$offset;
             }
 
             when ( 'idx' ) {
                 my $parent = $point->parent->ref->$*;
                 assert( is_arrayref( $parent ) );
-                splice( @$parent, $idx + $offset, $length, @$replace );
+                splice( @$parent, $idx + $_, $length, @$replace )
+                  for reverse sort @$offset;
             }
 
         }
@@ -289,7 +291,8 @@ sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
 
                     when ( !!is_arrayref( $ref ) ) {
 
-                        splice( @$ref, $offset ? @$ref : 0, 0, @$src );
+                        splice( @$ref, $_ ? @$ref : 0, 0, @$src )
+                          for reverse sort @$offset
                     }
 
                     default {
@@ -304,7 +307,8 @@ sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
                 assert( is_arrayref( $parent ) );
                 $idx //= $point->attrs->{idx};
                 assert( defined $idx );
-                splice( @$parent, $idx + $offset, $length, @$src );
+                splice( @$parent, $idx + $_, $length, @$src )
+                  for reverse sort @$offset;
             }
         }
 
