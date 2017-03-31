@@ -32,8 +32,12 @@ my %dest = (
     dpath => { type => Str, default => '/' },
 );
 
-my %use_dest_as
-  = ( use_dest_as => { type => Enum [ 'idx', 'container' ], default => 'auto' } );
+my %use_dest_as = (
+    use_dest_as => {
+        type => Enum [ 'element', 'container', 'auto' ],
+        default => 'auto'
+    },
+);
 
 my %source = (
     src           => { type => Any,         optional => 1 },
@@ -42,19 +46,25 @@ my %source = (
 );
 
 my %length = ( length => { type => Int, default => 1 } );
-my %offset = ( offset => { type => IntArray, default => sub { [0] } } );
+my %offset = (
+    offset => {
+        type    => IntArray,
+        default => sub { [0] }
+    } );
 
-my %multimode = ( multimode => { type => Enum [ 'iterate', 'array', 'hash', 'error' ], default => 'error'  } );
+my %multimode = (
+    multimode => {
+        type => Enum [ 'iterate', 'array', 'hash', 'error' ],
+        default => 'error'
+    } );
 
 my %Validation = (
     pop    => { %dest, %length },
     shift  => { %dest, %length },
     splice => { %dest, %length, %offset, %source, %use_dest_as, %multimode },
-    insert => { %dest, %length, %offset, %source, %use_dest_as, %multimode  },
+    insert => { %dest, %length, %offset, %source, %use_dest_as, %multimode },
     delete => {
-               %dest,
-               %length,
-               %offset,
+        %dest, %length, %offset,
         use_dest_as => {
             type => Enum [ 'value', 'key' ],
             default => 'value',
@@ -71,10 +81,8 @@ my %Validation = (
     },
 );
 
-my %Validator = map { $_ => validation_for(
-    params => $Validation{$_},
-    name   => $_,
-  ) }
+my %Validator
+  = map { $_ => validation_for( params => $Validation{$_}, name => $_ ) }
   keys %Validation;
 
 sub dup_context ( $context ) {
@@ -151,7 +159,8 @@ sub edit ( $action, $request ) {
     }
 
     my $points
-      = dup_context( $arg{dest} )->_search( dpath($arg{dpath}) )->current_points;
+      = dup_context( $arg{dest} )->_search( dpathr( $arg{dpath} ) )
+      ->current_points;
 
 
     for ( $action ) {
@@ -179,17 +188,18 @@ sub edit ( $action, $request ) {
                   unless is_arrayref( $dest );
                 splice( @$dest, 0, $arg{length} );
             }
-
         }
 
         when ( 'splice' ) {
 
-            _splice( $arg{use_dest_as}, $points, $arg{offset}, $arg{length}, $_ )
+            _splice( $arg{use_dest_as}, $points,
+                $arg{offset}, $arg{length}, $_ )
               foreach @$src;
         }
 
         when ( 'insert' ) {
-            _insert( $arg{use_dest_as}, $points, $arg{offset}, $arg{length}, $_ )
+            _insert( $arg{use_dest_as}, $points,
+                $arg{offset}, $arg{length}, $_ )
               foreach @$src;
         }
 
@@ -227,7 +237,7 @@ sub _deref ( $use_source_as, $value ) {
                 is_arrayref( $value )  ? $value
               : is_hashref( $value )   ? [%$value]
               : is_scalarref( $value ) ? [$$value]
-              : croak( "\$value is not an array, hash, or scalar reference\n" );
+              :   croak( "\$value is not an array, hash, or scalar reference\n" );
         }
 
         default {
@@ -240,7 +250,7 @@ sub _deref ( $use_source_as, $value ) {
 
 sub _splice ( $use_dest_as, $points, $offset, $length, $replace ) {
 
-    for my $point ( @$points )  {
+    for my $point ( @$points ) {
 
         my $ref;
 
@@ -281,7 +291,7 @@ sub _splice ( $use_dest_as, $points, $offset, $length, $replace ) {
 
 sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
 
-    for my $point ( @$points )  {
+    for my $point ( @$points ) {
 
         my $ref;
         my $idx;
@@ -344,13 +354,13 @@ sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
 
 sub _delete ( $points, $offset, $length ) {
 
-    for my $point ( @$points )  {
+    for my $point ( @$points ) {
 
         my $parent = $point->parent->ref->$*;
         my $attr   = $point->attrs;
 
 
-        if ( defined( my $key =  $attr->{key} ) ) {
+        if ( defined( my $key = $attr->{key} ) ) {
             delete $parent->{$key};
         }
         elsif ( exists $attr->{idx} ) {
@@ -390,7 +400,7 @@ sub _replace ( $points, $replace, $src ) {
                 my $old_key = $point->attrs->{key};
                 assert( defined $old_key );
 
-		my $new_key = is_ref( $$src ) ? refaddr( $$src ) : $$src;
+                my $new_key = is_ref( $$src ) ? refaddr( $$src ) : $$src;
 
                 $parent->{$new_key} = delete $parent->{$old_key};
             }
