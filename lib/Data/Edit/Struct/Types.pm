@@ -1,8 +1,11 @@
 package  Data::Edit::Struct::Types;
-use Data::DPath qw[ dpathi ];
+
+use strict;
+use warnings;
+use Data::DPath qw[ dpath dpathi ];
 use Type::Library
   -base,
-  -declare => qw( Context UseSourceAs );
+  -declare => qw( Context UseSourceAs IntArray DataPath );
 use Type::Utils -all;
 use Types::Standard -types;
 
@@ -23,6 +26,7 @@ declare IntArray,
 
 coerce IntArray,
   from Int, via sub { [ $_ ] };
+
 
 1;
 

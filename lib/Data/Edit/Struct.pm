@@ -19,8 +19,9 @@ use List::Util qw[ pairmap ];
 use Scalar::Util qw[ refaddr ];
 use Params::ValidationCompiler qw[ validation_for ];
 use Types::Standard -types;
+use Safe::Isa;
 
-use Data::DPath qw[ dpath ];
+use Data::DPath qw[ dpath dpathr dpathi ];
 
 use Carp;
 
@@ -35,8 +36,8 @@ my %use_dest_as
   = ( use_dest_as => { type => Enum [ 'idx', 'container' ], default => 'auto' } );
 
 my %source = (
-    source        => { type => Context,     optional => 1 },
-    spath         => { type => Str,         default  => '/' },
+    src           => { type => Any,         optional => 1 },
+    spath         => { type => Str,         optional => 1 },
     use_source_as => { type => UseSourceAs, default  => 'auto' },
 );
 
@@ -68,7 +69,8 @@ my %Validator = map { $_ => validation_for(
   keys %Validation;
 
 sub dup_context ( $context ) {
-    Data::DPath::Context->new->current_points( $context->current_points );
+    Data::DPath::Context->new( give_references => 1 )
+      ->current_points( $context->current_points );
 }
 
 
@@ -83,20 +85,33 @@ sub edit ( $action, $request ) {
 
     if ( exists $arg{src} ) {
 
+        my $ctx;
+
+        if ( $arg{src}->$_isa( 'Data::DPath::Context' ) ) {
+            $ctx = dup_context( $arg{src} );
+        }
+        else {
+            $arg{spath} //= is_arrayref( $arg{src} )
+              || is_hashref( $arg{src} ) ? '/' : '/*[0]';
+            $ctx = dpathi( $arg{src} );
+            $ctx->give_references( 1 );
+        }
+
+        my $spath = dpath( $arg{spath} );
 
         for ( $arg{multimode} ) {
 
             when ( 'array' ) {
-                $src = [ [ dup_context( $arg{src} )->matchr( $arg{spath} ) ] ];
+                $ctx->give_references( 0 );
+                $src = [ $ctx->matchr( $spath ) ];
             }
 
             when ( 'hash' ) {
 
                 my %src;
 
-                for my $point ( dup_context( $arg{src} )->_search( $arg{spath} )
-                    ->current_points )
-                {
+                $ctx->give_references( 0 );
+                for my $point ( $ctx->_search( $spath )->current_points->@* ) {
 
                     my $attr = $point->attr;
                     my $key = $attr->{key} // $attr->{idx}
@@ -106,22 +121,18 @@ sub edit ( $action, $request ) {
                     $src{$key} = $point->deref->$*;
                 }
 
-                $src = [ \%src ];
+                $src = [ \\%src ];
             }
 
             when ( 'iterate' ) {
-                $src = [ dup_context( $arg{src} )->matchr( $arg{spath} ) ];
+                $src = $ctx->matchr( $spath );
             }
 
             default {
 
-                my @src = dup_context( $arg{src} )->matchr( $arg{spath} );
-
+                $src = $ctx->matchr( $spath );
                 croak( "source path may not have multiple resolutions\n" )
-                  if @src > 1;
-
-                $src = [ $src[0] ];
-
+                  if @$src > 1;
             }
 
         }
