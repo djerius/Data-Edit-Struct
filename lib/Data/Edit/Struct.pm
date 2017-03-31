@@ -60,6 +60,15 @@ my %Validation = (
             default => 'value',
         },
     },
+    replace => {
+        %dest, %source,
+        %multimode,
+        replace => {
+            type => Enum [ 'value', 'key' ],
+            default => 'value',
+        },
+
+    },
 );
 
 my %Validator = map { $_ => validation_for(
@@ -77,7 +86,9 @@ sub dup_context ( $context ) {
 sub edit ( $action, $request ) {
 
     croak( "no action specified\n" ) unless defined $action;
-    my $validator = $Validator{$action} // croak( "unknown acton: $action\n" );
+
+    defined( my $validator = $Validator{$action} )
+      or croak( "unknown acton: $action\n" );
 
     my %arg = $validator->( %$request );
 
@@ -188,8 +199,9 @@ sub edit ( $action, $request ) {
         }
 
         when ( 'replace' ) {
-            _replace( $points, $arg{use_dest_as}, $arg{src} ),
-              foreach @$src;
+            croak( "source path may not have multiple resolutions\n" )
+              if @$src > 1;
+            _replace( $points, $arg{replace}, $src->[0] );
         }
     }
 
@@ -355,14 +367,18 @@ sub _delete ( $points, $offset, $length ) {
 
 }
 
-sub _replace ( $points, $use_dest_as, $src ) {
+sub _replace ( $points, $replace, $src ) {
 
-    for my $point ( @$points )  {
+    for my $point ( @$points ) {
 
-        for ( $use_dest_as ) {
+        $replace = 'value'
+          if $replace eq 'auto';
+
+
+        for ( $replace ) {
 
             when ( 'value' ) {
-                $point->ref->$* = $src;
+                $point->ref->$* = $src->$*;
             }
 
             when ( 'key' ) {
@@ -371,10 +387,12 @@ sub _replace ( $points, $use_dest_as, $src ) {
                 croak( "key replacement requires a hash element\n" )
                   unless is_hashref( $parent );
 
-                my $key = $point->attrs->{key};
-                assert( defined $key );
+                my $old_key = $point->attrs->{key};
+                assert( defined $old_key );
 
-                $parent->{$key} = is_ref( $src ) ? refaddr( $src ) : $src;
+		my $new_key = is_ref( $$src ) ? refaddr( $$src ) : $$src;
+
+                $parent->{$new_key} = delete $parent->{$old_key};
             }
         }
 

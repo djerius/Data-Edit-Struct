@@ -49,7 +49,7 @@
 +------------+--------------+-------------+------------------+---------------+---------+---------+---------------------------------------------------------------------------+
 |            |     any      |    value    |       any        |               | illegal | illegal |$dest = $source                                                            |
 |            +--------------+-------------+------------------+               +---------+---------+---------------------------------------------------------------------------+
-|  replace   |              |             |      scalar      |   illegal     | illegal | illegal |parent($dest)->{$source} = parent($dest)->{$dest->attrs{key}}              |
+| replace[2] |              |             |      scalar      |   illegal     | illegal | illegal |parent($dest)->{$source} = parent($dest)->{$dest->attrs{key}}              |
 |            |  hash value  |     key     +------------------+               +---------+---------+---------------------------------------------------------------------------+
 |            |              |             |    reference     |               | illegal | illegal |parent($dest)->{refadder $source} = parent($dest)->{$dest->atrs{key}}      |
 +------------+--------------+-------------+------------------+---------------+---------+---------+---------------------------------------------------------------------------+
@@ -105,6 +105,8 @@ Notes
 -----
 
 [1] splice action requires at least one of Offset and Length to be specified.
+
+[2] replace uses 'replace' instead of 'use_dest_as'
 
 Defaults
 --------
