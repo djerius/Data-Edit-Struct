@@ -163,12 +163,12 @@ sub edit ( $action, %request ) {
         when ( 'splice' ) {
 
             _splice( $arg{use_dest_as}, $points, $arg{offset}, $arg{length}, $_ )
-	      foreach @$src;
+              foreach @$src;
         }
 
         when ( 'insert' ) {
             _insert( $arg{use_dest_as}, $points, $arg{offset}, $arg{length}, $_ )
-	      foreach @$src;
+              foreach @$src;
         }
 
 
@@ -178,7 +178,7 @@ sub edit ( $action, %request ) {
 
         when ( 'replace' ) {
             _replace( $points, $arg{use_dest_as}, $arg{src} ),
-	      foreach @$src;
+              foreach @$src;
         }
     }
 
@@ -204,7 +204,7 @@ sub _deref ( $use_source_as, $value ) {
                 is_arrayref( $value )  ? $value
               : is_hashref( $value )   ? [%$value]
               : is_scalarref( $value ) ? [$$value]
-	      : croak( "\$value is not an array, hash, or scalar reference\n" );
+              : croak( "\$value is not an array, hash, or scalar reference\n" );
         }
 
         default {
@@ -347,7 +347,6 @@ sub _delete ( $points, $offset, $length ) {
 sub _replace ( $points, $use_dest_as, $src ) {
 
     for my $point ( @$points )  {
-
 
         for ( $use_dest_as ) {
 
