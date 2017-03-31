@@ -51,7 +51,9 @@ my %Validation = (
     splice => { %dest, %length, %offset, %source, %use_dest_as, %multimode },
     insert => { %dest, %length, %offset, %source, %use_dest_as, %multimode  },
     delete => {
-        %dest,
+               %dest,
+               %length,
+               %offset,
         use_dest_as => {
             type => Enum [ 'value', 'key' ],
             default => 'value',
@@ -171,7 +173,7 @@ sub edit ( $action, %request ) {
 
 
         when ( 'delete' ) {
-            _delete( $points );
+            _delete( $points, $arg{offset}, $arg{length} );
         }
 
         when ( 'replace' ) {
@@ -317,20 +319,22 @@ sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
 
 }
 
-sub _delete ( $points ) {
+sub _delete ( $points, $offset, $length ) {
 
     for my $point ( @$points )  {
 
-
         my $parent = $point->parent->ref->$*;
-        my $attr   = $point->attr;
+        my $attr   = $point->attrs;
 
-        if ( exists $attr->{key} ) {
-            delete $parent->{key};
+
+        if ( defined( my $key =  $attr->{key} ) ) {
+            delete $parent->{$key};
         }
         elsif ( exists $attr->{idx} ) {
 
-            splice( @$parent, $attr->{idx}, 1 );
+            splice( @$parent, $attr->{idx} + $_, $length )
+              for reverse sort @$offset;
+
         }
         else {
             croak( "destination was not an array or hash element?\n" );
