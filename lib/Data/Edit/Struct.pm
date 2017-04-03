@@ -199,8 +199,10 @@ sub edit ( $action, $request ) {
 
         when ( 'splice' ) {
 
+	    $src //= [ \[] ];
+
             _splice( $arg{use_dest_as}, $points,
-                $arg{offset}, $arg{length}, $_ )
+                $arg{offset}, $arg{length}, $_, $arg{use_source_as} )
               foreach @$src;
         }
 
@@ -225,67 +227,79 @@ sub edit ( $action, $request ) {
 }
 
 
-sub _deref ( $use_source_as, $value ) {
+sub _deref ( $use_source_as, $ref ) {
 
     my $use = $use_source_as;
-    $use = is_ref( $value ) ? 'container' : 'value'
+    $use = is_ref( $$ref ) ? 'container' : 'value'
       if $use eq 'auto';
 
     for ( $use ) {
 
         when ( 'value' ) {
 
-            return [$value];
+            return [$$ref];
         }
 
         when ( 'container' ) {
 
             return
-                is_arrayref( $value )  ? $value
-              : is_hashref( $value )   ? [%$value]
-              : is_scalarref( $value ) ? [$$value]
-              :   croak( "\$value is not an array, hash, or scalar reference\n" );
+                is_arrayref( $$ref )  ? $$ref
+              : is_hashref( $$ref )   ? [%$$ref]
+              : is_scalarref( $$ref ) ? [$$$ref]
+              : Data::Edit::Struct::failure::input::src->throw( "\$value is not an array, hash, or scalar reference" );
         }
 
         default {
 
-            croak( "unknown mode to use source in: $_\n" );
+            Data::Edit::Struct::failure::internal->throw( "internal error: unknown mode to use source in: $_" );
         }
 
     }
 }
 
-sub _splice ( $use_dest_as, $points, $offset, $length, $replace ) {
+sub _splice ( $use_dest_as, $points, $offset, $length, $replace, $use_source_as ) {
+
+   $replace = _deref( $use_source_as, $replace );
 
     for my $point ( @$points ) {
 
         my $ref;
 
-        my $idx = $point->attrs->{idx};
+	my $attrs = $point->can('attrs');
+
+	my $idx = ( ( defined ( $attrs ) && $point->$attrs ) // {} )->{idx};
 
         my $use = $use_dest_as;
 
-        if ( $use_dest_as eq 'auto' ) {
+        if ( $use eq 'auto' ) {
 
             $ref = $point->ref;
             $use
-              = is_arrayref( $ref ) ? 'container'
-              : defined $idx        ? 'idx'
-              :   croak( "point is neither an array element nor an array ref\n" );
+              = is_arrayref( $$ref ) ? 'container'
+              : defined $idx         ? 'element'
+              : Data::Edit::Struct::failure::input::dest->throw( "point is neither an array element nor an array ref" );
         }
 
         for ( $use ) {
 
             when ( 'container' ) {
                 $ref //= $point->ref;
-                splice( @$ref, $_, $length, @$replace )
+		Data::Edit::Struct::failure::input::dest->throw(  "point is not an array reference" )
+		  unless is_arrayref( $$ref );
+
+                splice( $$ref->@*, $_, $length, @$replace )
                   for reverse sort @$offset;
             }
 
-            when ( 'idx' ) {
-                my $parent = $point->parent->ref->$*;
-                assert( is_arrayref( $parent ) );
-                splice( @$parent, $idx + $_, $length, @$replace )
+            when ( 'element' ) {
+
+		my $rparent;
+		my $parent = defined( $rparent = $point->parent ) ? $rparent->ref : undef;
+
+		Data::Edit::Struct::failure::input::dest->throw(  "point is not an array element" )
+		    unless defined $$parent && is_arrayref( $$parent );
+
+                splice( @$$parent, $idx + $_, $length, @$replace )
                   for reverse sort @$offset;
             }
 
@@ -310,7 +324,7 @@ sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
 
             $use
               = is_arrayref( $ref ) | is_hashref( $ref ) ? 'container'
-              : defined( $idx = $point->attrs->{idx} ) ? 'idx'
+              : defined( $idx = $point->attrs->{idx} ) ? 'element'
               :   croak( "point is neither an array element nor an array ref\n" );
         }
 
@@ -344,7 +358,7 @@ sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
                 }
             }
 
-            when ( 'idx' ) {
+            when ( 'element' ) {
                 my $parent = $point->parent->ref->$*;
                 assert( is_arrayref( $parent ) );
                 $idx //= $point->attrs->{idx};
