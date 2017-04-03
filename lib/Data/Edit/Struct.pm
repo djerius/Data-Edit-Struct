@@ -208,7 +208,7 @@ sub edit ( $action, $request ) {
 
         when ( 'insert' ) {
             _insert( $arg{use_dest_as}, $points,
-                $arg{offset}, $arg{length}, $_ )
+                $arg{offset}, $_, $arg{use_source_as} )
               foreach @$src;
         }
 
@@ -257,7 +257,9 @@ sub _deref ( $use_source_as, $ref ) {
     }
 }
 
-sub _splice ( $use_dest_as, $points, $offset, $length, $replace, $use_source_as ) {
+sub _splice ( $use_dest_as, $points, $offset, $length, $replace,
+    $use_source_as )
+{
 
    $replace = _deref( $use_source_as, $replace );
 
@@ -310,12 +312,15 @@ sub _splice ( $use_dest_as, $points, $offset, $length, $replace, $use_source_as 
 }
 
 
-sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
+sub _insert ( $use_dest_as, $points, $offset, $src, $use_source_as ) {
+
+    $src = _deref( $use_source_as, $src );
 
     for my $point ( @$points ) {
 
         my $ref;
         my $idx;
+        my $attrs;
 
         my $use = $use_dest_as;
         if ( $use_dest_as eq 'auto' ) {
@@ -323,9 +328,12 @@ sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
             $ref = $point->ref;
 
             $use
-              = is_arrayref( $ref ) | is_hashref( $ref ) ? 'container'
-              : defined( $idx = $point->attrs->{idx} ) ? 'element'
-              :   croak( "point is neither an array element nor an array ref\n" );
+              = is_arrayref( $$ref )
+              || is_hashref( $$ref ) ? 'container'
+              : defined( $attrs = $point->can( 'attrs' ) )
+              && defined( $idx = $point->attrs->{idx} ) ? 'element'
+              : Data::Edit::Struct::failure::input::dest->throw(
+                "point is neither an array element nor an array ref" );
         }
 
         for ( $use ) {
@@ -336,35 +344,48 @@ sub _insert ( $use_dest_as, $points, $offset, $length, $src ) {
 
                 for ( $ref ) {
 
-                    when ( !!is_hashref( $ref ) ) {
+                    when ( !!is_hashref( $$ref ) ) {
 
-                        croak(
+                        Data::Edit::Struct::failure::input::src->throw(
                             "insertion into a hash requires an even number of elements\n"
                         ) if @$src % 2;
 
-                        pairmap { ; $ref->{$a} = $b } @$src;
+                        pairmap { ; $$ref->{$a} = $b } @$src;
                     }
 
-                    when ( !!is_arrayref( $ref ) ) {
+                    when ( !!is_arrayref( $$ref ) ) {
 
-                        splice( @$ref, $_ ? @$ref : 0, 0, @$src )
-                          for reverse sort @$offset
+                        my $array_length = scalar @$$ref;
+                        splice( @$$ref, $_, 0, @$src )
+                          for reverse sort map { $_ == -1 ? $array_length : $_ }
+                          @$offset;
                     }
 
                     default {
-                        croak( "can't insert into a reference of type ",
-                            ref $ref, "\n" );
+                        Data::Edit::Struct::failure::input::dest->throw(
+                            "can't insert into a reference of type @{[ ref $$ref]}"
+                        );
                     }
                 }
             }
 
             when ( 'element' ) {
-                my $parent = $point->parent->ref->$*;
-                assert( is_arrayref( $parent ) );
-                $idx //= $point->attrs->{idx};
-                assert( defined $idx );
-                splice( @$parent, $idx + $_, $length, @$src )
-                  for reverse sort @$offset;
+                my $rparent;
+                my $parent
+                  = defined( $rparent = $point->parent )
+                  ? $rparent->ref
+                  : undef;
+
+                Data::Edit::Struct::failure::input::dest->throw(
+                    "point is not an array element" )
+                  unless defined $parent && is_arrayref( $$parent );
+
+                $idx //= ( $attrs // $point->attrs )->{idx};
+
+                my $array_length = scalar @$$parent;
+                splice( @$$parent, $idx + $_, 0, @$src )
+                  for reverse sort map { $_ == -1 ? $array_length - $idx : $_ }
+                  @$offset;
             }
         }
 
