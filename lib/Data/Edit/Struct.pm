@@ -16,11 +16,11 @@ use Data::Edit::Struct::Types -all;
 
 use PerlX::Assert;
 use custom::failures 'Data::Edit::Struct::failure' => [ qw{
-  input::dest
-  input::src
-  input::param
-  internal
-  } ];
+      input::dest
+      input::src
+      input::param
+      internal
+      } ];
 
 use List::Util qw[ pairmap ];
 use Scalar::Util qw[ refaddr ];
@@ -199,7 +199,7 @@ sub edit ( $action, $request ) {
 
         when ( 'splice' ) {
 
-	    $src //= [ \[] ];
+            $src //= [ \[] ];
 
             _splice( $arg{use_dest_as}, $points,
                 $arg{offset}, $arg{length}, $_, $arg{use_source_as} )
@@ -246,12 +246,14 @@ sub _deref ( $use_source_as, $ref ) {
                 is_arrayref( $$ref )  ? $$ref
               : is_hashref( $$ref )   ? [%$$ref]
               : is_scalarref( $$ref ) ? [$$$ref]
-              : Data::Edit::Struct::failure::input::src->throw( "\$value is not an array, hash, or scalar reference" );
+              : Data::Edit::Struct::failure::input::src->throw(
+                "\$value is not an array, hash, or scalar reference" );
         }
 
         default {
 
-            Data::Edit::Struct::failure::internal->throw( "internal error: unknown mode to use source in: $_" );
+            Data::Edit::Struct::failure::internal->throw(
+                "internal error: unknown mode to use source in: $_" );
         }
 
     }
@@ -261,15 +263,15 @@ sub _splice ( $use_dest_as, $points, $offset, $length, $replace,
     $use_source_as )
 {
 
-   $replace = _deref( $use_source_as, $replace );
+    $replace = _deref( $use_source_as, $replace );
 
     for my $point ( @$points ) {
 
         my $ref;
 
-	my $attrs = $point->can('attrs');
+        my $attrs = $point->can( 'attrs' );
 
-	my $idx = ( ( defined ( $attrs ) && $point->$attrs ) // {} )->{idx};
+        my $idx = ( ( defined( $attrs ) && $point->$attrs ) // {} )->{idx};
 
         my $use = $use_dest_as;
 
@@ -279,15 +281,17 @@ sub _splice ( $use_dest_as, $points, $offset, $length, $replace,
             $use
               = is_arrayref( $$ref ) ? 'container'
               : defined $idx         ? 'element'
-              : Data::Edit::Struct::failure::input::dest->throw( "point is neither an array element nor an array ref" );
+              : Data::Edit::Struct::failure::input::dest->throw(
+                "point is neither an array element nor an array ref" );
         }
 
         for ( $use ) {
 
             when ( 'container' ) {
                 $ref //= $point->ref;
-		Data::Edit::Struct::failure::input::dest->throw(  "point is not an array reference" )
-		  unless is_arrayref( $$ref );
+                Data::Edit::Struct::failure::input::dest->throw(
+                    "point is not an array reference" )
+                  unless is_arrayref( $$ref );
 
                 splice( $$ref->@*, $_, $length, @$replace )
                   for reverse sort @$offset;
@@ -295,11 +299,15 @@ sub _splice ( $use_dest_as, $points, $offset, $length, $replace,
 
             when ( 'element' ) {
 
-		my $rparent;
-		my $parent = defined( $rparent = $point->parent ) ? $rparent->ref : undef;
+                my $rparent;
+                my $parent
+                  = defined( $rparent = $point->parent )
+                  ? $rparent->ref
+                  : undef;
 
-		Data::Edit::Struct::failure::input::dest->throw(  "point is not an array element" )
-		    unless defined $$parent && is_arrayref( $$parent );
+                Data::Edit::Struct::failure::input::dest->throw(
+                    "point is not an array element" )
+                  unless defined $$parent && is_arrayref( $$parent );
 
                 splice( @$$parent, $idx + $_, $length, @$replace )
                   for reverse sort @$offset;
