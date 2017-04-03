@@ -9,7 +9,6 @@ use Data::Edit::Struct qw[ edit ];
 
 use Scalar::Util qw[ refaddr ];
 
-$Data::DPath::USE_SAFE = 0;
 subtest 'hash value' => sub {
     my %dest = ( array => [ 0, 10, 20, 40 ], );
 
@@ -20,8 +19,6 @@ subtest 'hash value' => sub {
             src   => ['foo'],
         },
     );
-
-    use DDP;
 
     is( \%dest, { array => ['foo'] }, "replaced" );
 
