@@ -14,7 +14,6 @@ use Ref::Util qw[ is_arrayref is_hashref is_scalarref is_ref ];
 
 use Data::Edit::Struct::Types -all;
 
-use PerlX::Assert;
 use custom::failures 'Data::Edit::Struct::failure' => [ qw{
       input::dest
       input::src
@@ -448,7 +447,6 @@ sub _replace ( $points, $replace, $src ) {
                   unless is_hashref( $parent );
 
                 my $old_key = $point->attrs->{key};
-                assert( defined $old_key );
 
                 my $new_key = is_ref( $$src ) ? refaddr( $$src ) : $$src;
 
