@@ -15,6 +15,13 @@ use Ref::Util qw[ is_arrayref is_hashref is_scalarref is_ref ];
 use Data::Edit::Struct::Types -all;
 
 use PerlX::Assert;
+use custom::failures 'Data::Edit::Struct::failure' => [ qw{
+  input::dest
+  input::src
+  input::param
+  internal
+  } ];
+
 use List::Util qw[ pairmap ];
 use Scalar::Util qw[ refaddr ];
 use Params::ValidationCompiler qw[ validation_for ];
