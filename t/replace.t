@@ -9,18 +9,38 @@ use Data::Edit::Struct qw[ edit ];
 
 use Scalar::Util qw[ refaddr ];
 
-subtest 'hash value' => sub {
-    my %dest = ( array => [ 0, 10, 20, 40 ], );
+subtest 'value' => sub {
 
-    edit(
-        replace => {
-            dest  => \%dest,
-            dpath => '/array',
-            src   => ['foo'],
-        },
-    );
+    {
+        my %dest = ( array => [ 0, 10, 20, 40 ], );
 
-    is( \%dest, { array => ['foo'] }, "replaced" );
+        edit(
+            replace => {
+                dest  => \%dest,
+                dpath => '/array',
+                src   => ['foo'],
+            },
+        );
+
+        is( \%dest, { array => ['foo'] }, "hash" );
+    }
+
+    {
+
+        my @dest = ( 0, 10, 20, 40 );
+
+        edit(
+            replace => {
+                dest  => \@dest,
+                dpath => '/*[0]',
+                src   => 'foo',
+            },
+        );
+
+        is( \@dest, [ 'foo', 10, 20, 40 ], "array" );
+
+    }
+
 
 };
 
@@ -44,8 +64,8 @@ subtest 'hash key' => sub {
     };
 
     subtest 'reference key' => sub {
-        my %dest = ( array => [ 0, 10, 20, 40 ], );
-        my $aref = $dest{array};
+        my %dest  = ( array => [ 0, 10, 20, 40 ], );
+        my $aref  = $dest{array};
         my $raref = refaddr( $aref );
         edit(
             replace => {
