@@ -12,7 +12,8 @@ our $VERSION = '0.01';
 
 use Ref::Util qw[ is_arrayref is_hashref is_scalarref is_ref ];
 
-use Data::Edit::Struct::Types -all;
+use Types::Standard -types;
+use Data::Edit::Struct::Types -types;
 
 use custom::failures 'Data::Edit::Struct::failure' => [ qw{
       input::dest
@@ -24,7 +25,6 @@ use custom::failures 'Data::Edit::Struct::failure' => [ qw{
 use List::Util qw[ pairmap ];
 use Scalar::Util qw[ refaddr ];
 use Params::ValidationCompiler qw[ validation_for ];
-use Types::Standard -types;
 use Safe::Isa;
 
 use Data::DPath qw[ dpath dpathr dpathi ];
@@ -38,17 +38,12 @@ my %dest = (
     dpath => { type => Str, default => '/' },
 );
 
-my %use_dest_as = (
-    use_dest_as => {
-        type => Enum [ 'element', 'container', 'auto' ],
-        default => 'auto'
-    },
-);
+my %dtype = ( dtype => { type => UseDataAs, default => 'auto' }, );
 
 my %source = (
-    src           => { type => Any,         optional => 1 },
-    spath         => { type => Str,         optional => 1 },
-    use_source_as => { type => UseSourceAs, default  => 'auto' },
+    src   => { type => Any,       optional => 1 },
+    spath => { type => Str,       optional => 1 },
+    stype => { type => UseDataAs, default  => 'auto' },
 );
 
 my %length = ( length => { type => Int, default => 1 } );
@@ -67,9 +62,9 @@ my %multimode = (
 my %Validation = (
     pop    => { %dest, %length },
     shift  => { %dest, %length },
-    splice => { %dest, %length, %offset, %source, %use_dest_as, %multimode },
-    insert => { %dest, %length, %offset, %source, %use_dest_as, %multimode },
-    delete => { %dest, %length, %offset, },
+    splice => { %dest, %length, %offset, %source, %dtype, %multimode },
+    insert => { %dest, %length, %offset, %source, %dtype, %multimode },
+    delete  => { %dest, %length, %offset, },
     replace => {
         %dest, %source,
         %multimode,
@@ -194,14 +189,13 @@ sub edit ( $action, $request ) {
 
             $src //= [ \[] ];
 
-            _splice( $arg{use_dest_as}, $points,
-                $arg{offset}, $arg{length}, $_, $arg{use_source_as} )
+            _splice( $arg{dtype}, $points,
+                $arg{offset}, $arg{length}, $_, $arg{stype} )
               foreach @$src;
         }
 
         when ( 'insert' ) {
-            _insert( $arg{use_dest_as}, $points,
-                $arg{offset}, $_, $arg{use_source_as} )
+            _insert( $arg{dtype}, $points, $arg{offset}, $_, $arg{stype} )
               foreach @$src;
         }
 
@@ -220,15 +214,15 @@ sub edit ( $action, $request ) {
 }
 
 
-sub _deref ( $use_source_as, $ref ) {
+sub _deref ( $stype, $ref ) {
 
-    my $use = $use_source_as;
-    $use = is_ref( $$ref ) ? 'container' : 'value'
+    my $use = $stype;
+    $use = is_ref( $$ref ) ? 'container' : 'element'
       if $use eq 'auto';
 
     for ( $use ) {
 
-        when ( 'value' ) {
+        when ( 'element' ) {
 
             return [$$ref];
         }
@@ -252,11 +246,9 @@ sub _deref ( $use_source_as, $ref ) {
     }
 }
 
-sub _splice ( $use_dest_as, $points, $offset, $length, $replace,
-    $use_source_as )
-{
+sub _splice ( $dtype, $points, $offset, $length, $replace, $stype ) {
 
-    $replace = _deref( $use_source_as, $replace );
+    $replace = _deref( $stype, $replace );
 
     for my $point ( @$points ) {
 
@@ -266,7 +258,7 @@ sub _splice ( $use_dest_as, $points, $offset, $length, $replace,
 
         my $idx = ( ( defined( $attrs ) && $point->$attrs ) // {} )->{idx};
 
-        my $use = $use_dest_as;
+        my $use = $dtype;
 
         if ( $use eq 'auto' ) {
 
@@ -313,9 +305,9 @@ sub _splice ( $use_dest_as, $points, $offset, $length, $replace,
 }
 
 
-sub _insert ( $use_dest_as, $points, $offset, $src, $use_source_as ) {
+sub _insert ( $dtype, $points, $offset, $src, $stype ) {
 
-    $src = _deref( $use_source_as, $src );
+    $src = _deref( $stype, $src );
 
     for my $point ( @$points ) {
 
@@ -323,8 +315,8 @@ sub _insert ( $use_dest_as, $points, $offset, $src, $use_source_as ) {
         my $idx;
         my $attrs;
 
-        my $use = $use_dest_as;
-        if ( $use_dest_as eq 'auto' ) {
+        my $use = $dtype;
+        if ( $dtype eq 'auto' ) {
 
             $ref = $point->ref;
 

@@ -9,7 +9,7 @@ use Data::Edit::Struct qw[ edit ];
 
 subtest 'container' => sub {
 
-    my %defaults = ( use_dest_as => 'container' );
+    my %defaults = ( dtype => 'container' );
 
     subtest 'no replacement (e.g. deletion)' => sub {
 
@@ -73,9 +73,9 @@ subtest 'container' => sub {
 subtest 'element' => sub {
 
     my %defaults = (
-        use_dest_as => 'element',
-        dpath       => '/*[%d]',
-        idx         => 1,
+        dtype => 'element',
+        dpath => '/*[%d]',
+        idx   => 1,
     );
 
     subtest 'no replacement (e.g. deletion)' => sub {
@@ -144,7 +144,7 @@ subtest 'element' => sub {
 
 subtest 'auto' => sub {
 
-    my %defaults = ( use_dest_as => 'auto' );
+    my %defaults = ( dtype => 'auto' );
 
     subtest 'element' => sub {
 

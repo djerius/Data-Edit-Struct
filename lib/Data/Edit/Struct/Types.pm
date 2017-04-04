@@ -5,7 +5,7 @@ use warnings;
 use Data::DPath qw[ dpath dpathi ];
 use Type::Library
   -base,
-  -declare => qw( Context UseSourceAs IntArray DataPath );
+  -declare => qw( Context UseDataAs IntArray DataPath );
 use Type::Utils -all;
 use Types::Standard -types;
 
@@ -17,9 +17,8 @@ declare Context,
 coerce Context,
   from HashRef | ArrayRef | ScalarRef, via sub { dpathi( $_ ) };
 
-declare UseSourceAs,
-  as Enum [ 'value', 'container', 'auto' ],
-  from Str,  q[ $UseSourceAs{$_} // $_ ];
+declare UseDataAs,
+  as Enum [ 'element', 'container', 'auto' ];
 
 declare IntArray,
   as ArrayRef[Int];
