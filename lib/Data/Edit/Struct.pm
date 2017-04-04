@@ -117,7 +117,7 @@ sub edit ( $action, $request ) {
 
             when ( 'array' ) {
                 $ctx->give_references( 0 );
-                $src = [ $ctx->matchr( $spath ) ];
+                $src = [ \$ctx->matchr( $spath ) ];
             }
 
             when ( 'hash' ) {
@@ -127,12 +127,12 @@ sub edit ( $action, $request ) {
                 $ctx->give_references( 0 );
                 for my $point ( $ctx->_search( $spath )->current_points->@* ) {
 
-                    my $attr = $point->attr;
-                    my $key = $attr->{key} // $attr->{idx}
-                      or croak(
+                    my $attrs = $point->attrs;
+                    defined( my $key = $attrs->{key} // $attrs->{idx} )
+                      or Data::Edit::Struct::failure::input::src->throw(
                         "source path returned multiple values; unable to convert into hash as element has no `key' or `idx' attribute\n"
                       );
-                    $src{$key} = $point->deref->$*;
+                    $src{$key} = $point->ref->$*;
                 }
 
                 $src = [ \\%src ];
@@ -145,7 +145,7 @@ sub edit ( $action, $request ) {
             default {
 
                 $src = $ctx->matchr( $spath );
-                croak( "source path may not have multiple resolutions\n" )
+                Data::Edit::Struct::failure::input::src->throw( "source path may not have multiple resolutions\n" )
                   if @$src > 1;
             }
 
@@ -205,7 +205,7 @@ sub edit ( $action, $request ) {
         }
 
         when ( 'replace' ) {
-            croak( "source path may not have multiple resolutions\n" )
+            Data::Edit::Struct::failure::input::src->throw( "source path may not have multiple resolutions" )
               if @$src > 1;
             _replace( $points, $arg{replace}, $src->[0] );
         }
@@ -414,7 +414,6 @@ sub _replace ( $points, $replace, $src ) {
 
         $replace = 'value'
           if $replace eq 'auto';
-
 
         for ( $replace ) {
 
