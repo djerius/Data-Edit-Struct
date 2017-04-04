@@ -69,8 +69,8 @@ my %Validation = (
         %dest, %source,
         %multimode,
         replace => {
-            type => Enum [ 'value', 'key' ],
-            default => 'value',
+            type => Enum [ 'value', 'key', 'auto' ],
+            default => 'auto',
         },
 
     },
