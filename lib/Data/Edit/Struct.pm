@@ -69,13 +69,7 @@ my %Validation = (
     shift  => { %dest, %length },
     splice => { %dest, %length, %offset, %source, %use_dest_as, %multimode },
     insert => { %dest, %length, %offset, %source, %use_dest_as, %multimode },
-    delete => {
-        %dest, %length, %offset,
-        use_dest_as => {
-            type => Enum [ 'value', 'key' ],
-            default => 'value',
-        },
-    },
+    delete => { %dest, %length, %offset, },
     replace => {
         %dest, %source,
         %multimode,
