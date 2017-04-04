@@ -190,12 +190,12 @@ sub edit ( $action, $request ) {
             $src //= [ \[] ];
 
             _splice( $arg{dtype}, $points,
-                $arg{offset}, $arg{length}, $_, $arg{stype} )
+                $arg{offset}, $arg{length}, _deref( $_, $arg{stype} ) )
               foreach @$src;
         }
 
         when ( 'insert' ) {
-            _insert( $arg{dtype}, $points, $arg{offset}, $_, $arg{stype} )
+            _insert( $arg{dtype}, $points, $arg{offset}, _deref( $_, $arg{stype} ) )
               foreach @$src;
         }
 
@@ -214,7 +214,7 @@ sub edit ( $action, $request ) {
 }
 
 
-sub _deref ( $stype, $ref ) {
+sub _deref ( $ref, $stype ) {
 
     my $use = $stype;
     $use = is_ref( $$ref ) ? 'container' : 'element'
@@ -246,9 +246,7 @@ sub _deref ( $stype, $ref ) {
     }
 }
 
-sub _splice ( $dtype, $points, $offset, $length, $replace, $stype ) {
-
-    $replace = _deref( $stype, $replace );
+sub _splice ( $dtype, $points, $offset, $length, $replace ) {
 
     for my $point ( @$points ) {
 
@@ -305,9 +303,7 @@ sub _splice ( $dtype, $points, $offset, $length, $replace, $stype ) {
 }
 
 
-sub _insert ( $dtype, $points, $offset, $src, $stype ) {
-
-    $src = _deref( $stype, $src );
+sub _insert ( $dtype, $points, $offset, $src ) {
 
     for my $point ( @$points ) {
 
