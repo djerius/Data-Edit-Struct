@@ -108,22 +108,21 @@ subtest 'container' => sub {
 
     subtest 'errors' => sub {
 
-        my %defaults = (
-            %defaults,
-            dest  => { foo => 1 },
-            dpath => '/foo',
-            src => [ 0, 1 ],
-        );
-
         isa_ok(
-            dies { edit( splice => \%defaults ) },
+            dies {
+                edit(
+                    insert => {
+                        %defaults,
+                        dest  => { foo => 1 },
+                        dpath => '/foo',
+                        src => [ 0, 1 ],
+                    } )
+            },
             ['Data::Edit::Struct::failure::input::dest'],
             'destination must be an array or hash',
         );
 
     };
-
-
 };
 
 subtest 'element' => sub {
@@ -191,15 +190,15 @@ subtest 'element' => sub {
     subtest 'errors' => sub {
 
         my @params = ( {
-            dest  => { foo => 1 },
-            dpath => '/foo',
-            src => [ 0, 1 ],
-          },
-          {
-            dest  => [ 10, 20 ],
-            dpath => '/',
-            src   => [ 0,  1 ],
-          } );
+                dest  => { foo => 1 },
+                dpath => '/foo',
+                src => [ 0, 1 ],
+            },
+            {
+                dest  => [ 10, 20 ],
+                dpath => '/',
+                src   => [ 0,  1 ],
+            } );
 
         for ( @params ) {
 
@@ -221,26 +220,26 @@ subtest auto => sub {
 
         test_insert( %defaults, %$_ )
           for ( {
-                dest  => [ 10, 20, 30, 40 ],
-                dpath => '/',
-                src    => [ 1, 2 ],
-                offset => 0,
-                expected => [ 1, 2, 10, 20, 30, 40 ],
-            } );
+              dest  => [ 10, 20, 30, 40 ],
+              dpath => '/',
+              src    => [ 1, 2 ],
+              offset => 0,
+              expected => [ 1, 2, 10, 20, 30, 40 ],
+          } );
     };
 
     subtest 'element' => sub {
 
         test_insert( %defaults, %$_ )
           for ( {
-		 dest  => [ 10, 20, 30, 40 ],
-		 dpath => '/*[0]',
-		 src    => [ 1, 2 ],
-		 offset => 0,
-		 expected => [ 1, 2, 10, 20, 30, 40 ],
-		},
-	   )
-      };
+                dest  => [ 10, 20, 30, 40 ],
+                dpath => '/*[0]',
+                src    => [ 1, 2 ],
+                offset => 0,
+                expected => [ 1, 2, 10, 20, 30, 40 ],
+            },
+          );
+    };
 
 };
 
