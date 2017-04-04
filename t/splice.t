@@ -5,11 +5,15 @@ use Test2::API qw[ context ];
 
 use experimental qw[ postderef switch signatures ];
 
+use Ref::Util qw[ is_arrayref ];
 use Data::Edit::Struct qw[ edit ];
 
 subtest 'container' => sub {
 
-    my %defaults = ( dtype => 'container' );
+    my %defaults = (
+        dtype => 'container',
+        stype => 'container',
+    );
 
     subtest 'no replacement (e.g. deletion)' => sub {
 
@@ -50,22 +54,68 @@ subtest 'container' => sub {
                 length => 2,
                 src => [ 50, 60 ],
             },
+            {
+                input  => [ 10, 20, 30, 40 ],
+                offset => 1,
+                length => 2,
+                src   => [ 50, 60 ],
+                stype => 'element',
+            },
+            {
+                input  => [ 10, 20, 30, 40 ],
+                offset => 1,
+                length => 2,
+                src    => 'foo',
+                stype  => 'element',
+            },
           );
 
     };
 
     subtest errors => sub {
 
-        my %defaults = ( %defaults, dest => { foo => 1 }, dpath => '/' );
+        my %defaults = %defaults;
+        delete $defaults{idx};
 
         isa_ok(
-            dies { edit( splice => { %defaults, dpath => '/' } ) },
+            dies {
+                edit(
+                    splice => {
+                        %defaults,
+                        dest  => { foo => 1 },
+                        dpath => '/'
+                    } )
+            },
             ['Data::Edit::Struct::failure::input::dest'],
-            'destination container must be an array'
+            'illegal destination: hash',
         );
 
-    };
+        isa_ok(
+            dies {
+                edit(
+                    splice => {
+                        %defaults,
+                        dest  => { foo => 1 },
+                        dpath => '/foo'
+                    } )
+            },
+            ['Data::Edit::Struct::failure::input::dest'],
+            'illegal destination: hash element',
+        );
 
+        isa_ok(
+            dies {
+                edit(
+                    splice => {
+                        %defaults,
+                        dest  => [ 1, 2 ],
+                        dpath => '/*[0]'
+                    } )
+            },
+            ['Data::Edit::Struct::failure::input::dest'],
+            'illegal destination: array element',
+        );
+    };
 
 };
 
@@ -123,19 +173,26 @@ subtest 'element' => sub {
 
     subtest errors => sub {
 
-        my %defaults = ( %defaults, dest => { foo => 1 } );
+        my %defaults = %defaults;
         delete $defaults{idx};
 
         isa_ok(
-            dies { edit( splice => { %defaults, dpath => '/' } ) },
+            dies {
+                edit(
+                    splice => { %defaults, dest => { foo => 1 }, dpath => '/' }
+                  )
+            },
             ['Data::Edit::Struct::failure::input::dest'],
-            'destination element requires parent',
+            'illegal destination: root',
         );
 
         isa_ok(
-            dies { edit( splice => { %defaults, dpath => '/foo' } ) },
+            dies {
+                edit( splice =>
+                      { %defaults, dest => { foo => 1 }, dpath => '/foo' } )
+            },
             ['Data::Edit::Struct::failure::input::dest'],
-            'destination parent must be array',
+            'illegal destination: hash element',
         );
 
     };
@@ -209,17 +266,19 @@ subtest 'auto' => sub {
         };
     };
 
-    subtest errors => sub {
-
-        my %defaults = ( %defaults, dest => { foo => 1 } );
-
-        isa_ok(
-            dies { edit( splice => \%defaults ) },
-            ['Data::Edit::Struct::failure::input::dest'],
-            'destination must be an array or array element',
-        );
-
-    };
+    isa_ok(
+        dies {
+            edit(
+                splice => {
+                    %defaults,
+                    dest  => { foo => 1 },
+                    dpath => '/'
+                },
+              )
+        },
+        ['Data::Edit::Struct::failure::input::dest'],
+        'illegal destination: root',
+    );
 
 };
 
@@ -250,7 +309,12 @@ sub cmp_splice( %arg ) {
         @input,
         ( $idx // 0 ) + ( $arg{offset} // 0 ),
         $arg{length} // 1,
-        ( defined $arg{src} ? $arg{src}->@* : () ),
+        defined $arg{src}
+        ? is_arrayref( $arg{src} )
+          && ( ( $arg{stype} // 'container' ) eq 'container' )
+              ? $arg{src}->@*
+              : $arg{src}
+        : (),
     );
 
     my $dest = [ $input->@* ];
