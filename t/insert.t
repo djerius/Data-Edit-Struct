@@ -11,6 +11,7 @@ subtest 'container' => sub {
 
     my %defaults = (
         dtype => 'container',
+        stype => 'auto',
     );
 
     subtest 'dest => array' => sub {
@@ -58,6 +59,14 @@ subtest 'container' => sub {
                 offset => 4,
                 expected => [ 10, 20, 30, 40, 41, 42 ],
             },
+            {
+                dest  => [ 10, 20, 30, 40 ],
+                dpath => '/',
+                src    => { 41 => 42 },
+                stype  => 'element',
+                offset => 4,
+                expected => [ 10, 20, 30, 40, { 41 => 42 } ],
+            },
 
           );
 
@@ -80,6 +89,21 @@ subtest 'container' => sub {
             },
           );
 
+        isa_ok(
+            dies {
+                edit(
+                    insert => {
+                        %defaults,
+                        dest  => { foo => 1 },
+                        dpath => '/',
+                        src   => { bar => 11 },
+                        spath => '/',
+                        stype => 'element'
+                    } )
+            },
+            ['Data::Edit::Struct::failure::input::src'],
+            'source must have an even number of elements to insert into a hash',
+        );
     };
 
     subtest 'errors' => sub {
@@ -151,7 +175,14 @@ subtest 'element' => sub {
                 offset => 1,
                 expected => [ 10, 20, 30, 40, 41, 42 ],
             },
-
+            {
+                dest  => [ 10, 20, 30, 40 ],
+                dpath => '/*[3]',
+                src    => { 41 => 42 },
+                stype  => 'element',
+                offset => 1,
+                expected => [ 10, 20, 30, 40, { 41 => 42 } ],
+            },
           );
 
     };
