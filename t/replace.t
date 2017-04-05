@@ -40,8 +40,6 @@ subtest 'value' => sub {
         is( \@dest, [ 'foo', 10, 20, 40 ], "array" );
 
     }
-
-
 };
 
 subtest 'hash key' => sub {
@@ -79,8 +77,45 @@ subtest 'hash key' => sub {
         is( \%dest, { $raref => $aref }, "key replaced" );
         is( refaddr( $dest{$raref} ), $raref, "contents retained" );
     };
-
-
 };
+
+isa_ok(
+    dies {
+        edit(
+            replace => {
+                replace => 'key',
+                dest    => [],
+            } )
+    },
+    ['Data::Edit::Struct::failure::input::src'],
+    "no source"
+);
+
+isa_ok(
+    dies {
+        edit(
+            replace => {
+                replace => 'key',
+			dest    => [],
+			src => ['foo']
+            } )
+    },
+    ['Data::Edit::Struct::failure::input::dest'],
+    "can't replace root"
+);
+
+isa_ok(
+    dies {
+        edit(
+            replace => {
+                replace => 'key',
+			dest    => [ 0 ],
+			dpath => '/*[0]',
+			src => 'foo'
+            } )
+    },
+    ['Data::Edit::Struct::failure::input::dest'],
+    "dest must be hash element to replace key"
+);
 
 done_testing;

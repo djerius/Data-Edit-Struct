@@ -190,8 +190,15 @@ sub edit ( $action, $request ) {
         }
 
         when ( 'replace' ) {
-            Data::Edit::Struct::failure::input::src->throw( "source path may not have multiple resolutions" )
+
+            Data::Edit::Struct::failure::input::src->throw(
+                "source was not specified" )
+              if !defined $src;
+
+            Data::Edit::Struct::failure::input::src->throw(
+                "source path may not have multiple resolutions" )
               if @$src > 1;
+
             _replace( $points, $arg{replace}, $src->[0] );
         }
     }
@@ -442,15 +449,21 @@ sub _replace ( $points, $replace, $src ) {
 
             when ( 'key' ) {
 
-                my $parent = $point->parent->ref->$*;
-                croak( "key replacement requires a hash element\n" )
-                  unless is_hashref( $parent );
+                my $rparent = $point->parent;
+                my $parent
+                  = defined( $rparent )
+                  ? $rparent->ref
+                  : undef;
+
+                Data::Edit::Struct::failure::input::dest->throw(
+                    "key replacement requires a hash element\n" )
+                  unless is_hashref( $$parent );
 
                 my $old_key = $point->attrs->{key};
 
                 my $new_key = is_ref( $$src ) ? refaddr( $$src ) : $$src;
 
-                $parent->{$new_key} = delete $parent->{$old_key};
+                $$parent->{$new_key} = delete $$parent->{$old_key};
             }
         }
 
