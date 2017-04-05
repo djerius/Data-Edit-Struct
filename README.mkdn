@@ -1,6 +1,6 @@
 # NAME
 
-Data::Edit::Struct - Edit a Perl structure
+Data::Edit::Struct - Edit a Perl structure addressed with a Data::DPath path
 
 # VERSION
 
