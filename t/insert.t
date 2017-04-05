@@ -7,6 +7,15 @@ use experimental qw[ postderef switch signatures ];
 
 use Data::Edit::Struct qw[ edit ];
 
+isa_ok(
+    dies {
+        edit( insert => { dest => [] } )
+    },
+    ['Data::Edit::Struct::failure::input::src'],
+    "source must be specified",
+);
+
+
 subtest 'container' => sub {
 
     my %defaults = (

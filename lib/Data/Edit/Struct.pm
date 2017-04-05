@@ -180,7 +180,12 @@ sub edit ( $action, $request ) {
         }
 
         when ( 'insert' ) {
-            _insert( $arg{dtype}, $points, $arg{offset}, _deref( $_, $arg{stype} ) )
+            Data::Edit::Struct::failure::input::src->throw(
+                "source was not specified" )
+              if !defined $src;
+
+            _insert( $arg{dtype}, $points, $arg{offset},
+                _deref( $_, $arg{stype} ) )
               foreach @$src;
         }
 
