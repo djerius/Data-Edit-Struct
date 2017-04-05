@@ -88,10 +88,12 @@ sub dup_context ( $context ) {
 
 sub edit ( $action, $request ) {
 
-    croak( "no action specified\n" ) unless defined $action;
+    Data::Edit::Struct::failure::input::param->throw( "no action specified\n" )
+      unless defined $action;
 
     defined( my $validator = $Validator{$action} )
-      or croak( "unknown acton: $action\n" );
+      or Data::Edit::Struct::failure::input::param->throw(
+        "unknown acton: $action\n" );
 
     my %arg = $validator->( %$request );
 
