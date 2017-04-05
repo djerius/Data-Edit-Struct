@@ -282,9 +282,9 @@ sub _splice ( $dtype, $points, $offset, $length, $replace ) {
 
             when ( 'element' ) {
 
-                my $rparent;
+                my $rparent = $point->parent;
                 my $parent
-                  = defined( $rparent = $point->parent )
+                  = defined( $rparent )
                   ? $rparent->ref
                   : undef;
 
@@ -359,9 +359,9 @@ sub _insert ( $dtype, $points, $offset, $src ) {
             }
 
             when ( 'element' ) {
-                my $rparent;
+                my $rparent = $point->parent;
                 my $parent
-                  = defined( $rparent = $point->parent )
+                  = defined( $rparent )
                   ? $rparent->ref
                   : undef;
 
