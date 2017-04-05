@@ -1,7 +1,12 @@
 package  Data::Edit::Struct::Types;
 
+# ABSTRACT: Types for Data::Edit::Struct;
+
 use strict;
 use warnings;
+
+our $VERSION = '0.01';
+
 use Data::DPath qw[ dpath dpathi ];
 use Type::Library
   -base,
@@ -29,3 +34,15 @@ coerce IntArray,
 
 1;
 
+
+1;
+
+# COPYRIGHT
+
+__END__
+
+
+=head1 SYNOPSIS
+
+
+=head1 SEE ALSO

@@ -29,7 +29,10 @@ use Safe::Isa;
 
 use Data::DPath qw[ dpath dpathr dpathi ];
 
-use Carp;
+# uncomment to run coverage tests, as Safe compartment makes
+# Devel::Cover whimper
+#
+# $Data::DPath::USE_SAFE = 0;
 
 our @EXPORT_OK = qw[ edit ];
 
