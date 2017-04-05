@@ -147,7 +147,8 @@ sub edit ( $action, $request ) {
             default {
 
                 $src = $ctx->matchr( $spath );
-                Data::Edit::Struct::failure::input::src->throw( "source path may not have multiple resolutions\n" )
+                Data::Edit::Struct::failure::input::src->throw(
+                    "source path may not have multiple resolutions\n" )
                   if @$src > 1;
             }
 
@@ -413,7 +414,8 @@ sub _delete ( $points, $offset, $length ) {
     for my $point ( @$points ) {
 
         my $rparent = $point->parent;
-        my $parent  = defined( $rparent )
+        my $parent
+          = defined( $rparent )
           ? $rparent->ref
           : undef;
 
@@ -434,7 +436,7 @@ sub _delete ( $points, $offset, $length ) {
         }
         else {
             Data::Edit::Struct::failure::input::internal->throw(
-                "point nas neither idx nor key attribute" )
+                "point has neither idx nor key attribute" );
         }
 
     }
