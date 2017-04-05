@@ -166,12 +166,8 @@ sub edit ( $action, $request ) {
 
         when ( 'shift' ) {
 
-            for my $point ( @$points ) {
-                my $dest = $point->ref->$*;
-                croak( "pop destination is not an array\n" )
-                  unless is_arrayref( $dest );
-                splice( @$dest, 0, $arg{length} );
-            }
+            _shift( $points, $arg{length} );
+
         }
 
         when ( 'splice' ) {
@@ -247,6 +243,17 @@ sub _pop ( $points, $length ) {
         $length = @$dest if $length > @$dest;
         splice( @$dest, -$length, $length );
 
+    }
+}
+
+sub _shift ( $points, $length ) {
+
+    for my $point ( @$points ) {
+        my $dest = $point->ref->$*;
+        Data::Edit::Struct::failure::input::dest->throw(
+            "destination is not an array" )
+          unless is_arrayref( $dest );
+        splice( @$dest, 0, $length );
     }
 }
 

@@ -44,4 +44,14 @@ edit(
 is( $dest{array}, [], "shift 2" );
 
 
+isa_ok(
+    dies {
+        edit(
+            shift => {
+                dest => {} } )
+    },
+    ['Data::Edit::Struct::failure::input::dest'],
+    "destination is not an array"
+);
+
 done_testing;
