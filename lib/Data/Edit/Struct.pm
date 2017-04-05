@@ -387,21 +387,29 @@ sub _delete ( $points, $offset, $length ) {
 
     for my $point ( @$points ) {
 
-        my $parent = $point->parent->ref->$*;
-        my $attr   = $point->attrs;
+        my $rparent = $point->parent;
+        my $parent  = defined( $rparent )
+          ? $rparent->ref
+          : undef;
 
+        Data::Edit::Struct::failure::input::dest->throw(
+            "point is not an element in a container" )
+          unless defined $parent;
+
+        my $attr = $point->attrs;
 
         if ( defined( my $key = $attr->{key} ) ) {
-            delete $parent->{$key};
+            delete $$parent->{$key};
         }
         elsif ( exists $attr->{idx} ) {
 
-            splice( @$parent, $attr->{idx} + $_, $length )
+            splice( @$$parent, $attr->{idx} + $_, $length )
               for reverse sort @$offset;
 
         }
         else {
-            croak( "destination was not an array or hash element?\n" );
+            Data::Edit::Struct::failure::input::internal->throw(
+                "point nas neither idx nor key attribute" )
         }
 
     }
