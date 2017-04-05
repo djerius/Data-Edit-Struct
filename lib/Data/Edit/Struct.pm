@@ -161,18 +161,7 @@ sub edit ( $action, $request ) {
     for ( $action ) {
 
         when ( 'pop' ) {
-
-            for my $point ( @$points ) {
-
-                my $dest = $point->ref->$*;
-                croak( "pop destination is not an array\n" )
-                  unless is_arrayref( $dest );
-
-                my $length = $arg{length};
-                $length = @$dest if $length > @$dest;
-                splice( @$dest, -$length, $length );
-            }
-
+            _pop( $points, $arg{length} );
         }
 
         when ( 'shift' ) {
@@ -242,6 +231,21 @@ sub _deref ( $ref, $stype ) {
             Data::Edit::Struct::failure::internal->throw(
                 "internal error: unknown mode to use source in: $_" );
         }
+
+    }
+}
+
+sub _pop ( $points, $length ) {
+
+    for my $point ( @$points ) {
+
+        my $dest = $point->ref->$*;
+        Data::Edit::Struct::failure::input::dest->throw(
+            "destination is not an array" )
+          unless is_arrayref( $dest );
+
+        $length = @$dest if $length > @$dest;
+        splice( @$dest, -$length, $length );
 
     }
 }

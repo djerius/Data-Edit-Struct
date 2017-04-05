@@ -44,4 +44,12 @@ edit(
 is( $dest{array}, [], "pop 2" );
 
 
+isa_ok(
+    dies {
+        edit( pop => { dest => {} } )
+    },
+    ['Data::Edit::Struct::failure::input::dest'],
+    "destination is not an array"
+);
+
 done_testing;
