@@ -56,8 +56,8 @@ my %offset = (
         default => sub { [0] }
     } );
 
-my %multimode = (
-    multimode => {
+my %sxfrm = (
+    sxfrm => {
         type => Enum [ 'iterate', 'array', 'hash', 'error' ],
         default => 'error'
     } );
@@ -65,12 +65,12 @@ my %multimode = (
 my %Validation = (
     pop    => { %dest, %length },
     shift  => { %dest, %length },
-    splice => { %dest, %length, %offset, %source, %dtype, %multimode },
-    insert => { %dest, %length, %offset, %source, %dtype, %multimode },
+    splice => { %dest, %length, %offset, %source, %dtype, %sxfrm },
+    insert => { %dest, %length, %offset, %source, %dtype, %sxfrm },
     delete  => { %dest, %length, %offset, },
     replace => {
         %dest, %source,
-        %multimode,
+        %sxfrm,
         replace => {
             type => Enum [ 'value', 'key', 'auto' ],
             default => 'auto',
@@ -118,7 +118,7 @@ sub edit ( $action, $request ) {
 
         my $spath = dpath( $arg{spath} );
 
-        for ( $arg{multimode} ) {
+        for ( $arg{sxfrm} ) {
 
             when ( 'array' ) {
                 $ctx->give_references( 0 );

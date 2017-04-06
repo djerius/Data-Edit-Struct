@@ -26,7 +26,7 @@ isa_ok(
 
 subtest 'hash' => sub {
 
-    my %defaults = ( multimode => 'hash' );
+    my %defaults = ( sxfrm => 'hash' );
 
     isa_ok(
         dies {
@@ -98,7 +98,7 @@ subtest 'hash' => sub {
 
 subtest 'array' => sub {
 
-    my %defaults = ( multimode => 'array' );
+    my %defaults = ( sxfrm => 'array' );
 
     {
         my @dest = ( 0, 10, 20, 40 );
@@ -161,7 +161,7 @@ subtest 'iterate' => sub {
                     dpath => '/*[0]',
                     src => [ [ 1, 2, 3, 4 ], [ 5, 6, 7, 8 ] ],
                     spath     => '/*/*[0]',
-                    multimode => 'iterate',
+                    sxfrm => 'iterate',
                 },
               )
         },
