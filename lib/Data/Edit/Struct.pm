@@ -10,7 +10,7 @@ use Exporter 'import';
 
 our $VERSION = '0.01';
 
-use Ref::Util qw[ is_arrayref is_hashref is_scalarref is_ref ];
+use Ref::Util qw[ is_arrayref is_hashref is_scalarref is_ref is_coderef ];
 
 use Types::Standard -types;
 use Data::Edit::Struct::Types -types;
@@ -58,9 +58,15 @@ my %offset = (
 
 my %sxfrm = (
     sxfrm => {
-        type => Enum [ 'iterate', 'array', 'hash', 'error' ],
+        type => Enum [ 'iterate', 'array', 'hash', 'error' ] | CodeRef,
         default => 'error'
-    } );
+    },
+    sxfrm_args => {
+        type    => HashRef,
+        default => sub { {} },
+    },
+);
+
 
 my %Validation = (
     pop    => { %dest, %length },
@@ -69,8 +75,7 @@ my %Validation = (
     insert => { %dest, %length, %offset, %source, %dtype, %sxfrm },
     delete  => { %dest, %length, %offset, },
     replace => {
-        %dest, %source,
-        %sxfrm,
+        %dest, %source, %sxfrm,
         replace => {
             type => Enum [ 'value', 'key', 'auto' ],
             default => 'auto',
@@ -100,69 +105,11 @@ sub edit ( $action, $request ) {
 
     my %arg = $validator->( %$request );
 
-    my $src;
-
-    if ( exists $arg{src} ) {
-
-        my $ctx;
-
-        if ( $arg{src}->$_isa( 'Data::DPath::Context' ) ) {
-            $ctx = dup_context( $arg{src} );
-        }
-        else {
-            $arg{spath} //= is_arrayref( $arg{src} )
-              || is_hashref( $arg{src} ) ? '/' : '/*[0]';
-            $ctx = dpathi( $arg{src} );
-            $ctx->give_references( 1 );
-        }
-
-        my $spath = dpath( $arg{spath} );
-
-        for ( $arg{sxfrm} ) {
-
-            when ( 'array' ) {
-                $ctx->give_references( 0 );
-                $src = [ \$ctx->matchr( $spath ) ];
-            }
-
-            when ( 'hash' ) {
-
-                my %src;
-
-                $ctx->give_references( 0 );
-                for my $point ( $ctx->_search( $spath )->current_points->@* ) {
-
-                    my $attrs = $point->attrs;
-                    defined( my $key = $attrs->{key} // $attrs->{idx} )
-                      or Data::Edit::Struct::failure::input::src->throw(
-                        "source path returned multiple values; unable to convert into hash as element has no `key' or `idx' attribute\n"
-                      );
-                    $src{$key} = $point->ref->$*;
-                }
-
-                $src = [ \\%src ];
-            }
-
-            when ( 'iterate' ) {
-                $src = $ctx->matchr( $spath );
-            }
-
-            default {
-
-                $src = $ctx->matchr( $spath );
-                Data::Edit::Struct::failure::input::src->throw(
-                    "source path may not have multiple resolutions\n" )
-                  if @$src > 1;
-            }
-
-        }
-
-    }
+    my $src = _sxfrm( @arg{ qw[ src spath sxfrm sxfrm_args ] } );
 
     my $points
       = dup_context( $arg{dest} )->_search( dpathr( $arg{dpath} ) )
       ->current_points;
-
 
     for ( $action ) {
 
@@ -214,6 +161,86 @@ sub edit ( $action, $request ) {
         }
     }
 
+}
+
+
+sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
+
+    return unless defined $src;
+
+    my $ctx;
+
+    if ( $src->$_isa( 'Data::DPath::Context' ) ) {
+        $ctx = dup_context( $src );
+    }
+    else {
+        $spath //= is_arrayref( $src )
+          || is_hashref( $src ) ? '/' : '/*[0]';
+        $ctx = dpathi( $src );
+        $ctx->give_references( 1 );
+    }
+
+    $spath = dpath( $spath );
+
+    for ( $sxfrm ) {
+
+        when ( !!is_coderef( $_ ) ) {
+
+            return $_->( $ctx, $spath, $args );
+        }
+
+        when ( 'array' ) {
+            $ctx->give_references( 0 );
+            return [ \$ctx->matchr( $spath ) ];
+        }
+
+        when ( 'hash' ) {
+
+            my %src;
+
+            if ( exists $args->{key} ) {
+
+		my $src = $ctx->matchr( $spath );
+		Data::Edit::Struct::failure::input::src->throw(
+							       "source path may not have multiple resolutions\n" )
+		    if @$src > 1;
+		$src{ $args->{key} } = $src->[0]->$*;
+            }
+
+            else {
+
+                $ctx->give_references( 0 );
+                for my $point ( $ctx->_search( $spath )->current_points->@* ) {
+
+                    my $attrs = $point->attrs;
+                    defined( my $key = $attrs->{key} // $attrs->{idx} )
+                      or Data::Edit::Struct::failure::input::src->throw(
+                        "source path returned multiple values; unable to convert into hash as element has no `key' or `idx' attribute\n"
+                      );
+                    $src{$key} = $point->ref->$*;
+                }
+            }
+
+            return [ \\%src ];
+        }
+
+        when ( 'iterate' ) {
+
+            return $ctx->matchr( $spath );
+
+        }
+
+        default {
+
+            my $src = $ctx->matchr( $spath );
+            Data::Edit::Struct::failure::input::src->throw(
+                "source path may not have multiple resolutions\n" )
+              if @$src > 1;
+
+	    return $src;
+        }
+
+    }
 }
 
 

@@ -5,6 +5,9 @@ use warnings;
 
 use Test2::Bundle::Extended;
 
+use experimental qw[ postderef switch signatures ];
+
+
 use Data::Edit::Struct qw[ edit ];
 
 use Scalar::Util qw[ refaddr ];
@@ -94,6 +97,24 @@ subtest 'hash' => sub {
         is( \@dest, [ 0, { foo => 1, baz => 3 }, 20, 40 ], "splice" );
     }
 
+    {
+        my @dest = ( 0, 10, 20, 40 );
+
+        edit(
+            splice => {
+                %defaults,
+                sxfrm_args => { key => 'goo' },
+                dest       => \@dest,
+                dpath      => '/*[1]',
+                src   => { foo => 1, bar => 5, baz => 3 },
+                spath => '/bar',
+                stype => 'element',
+            },
+        );
+
+        is( \@dest, [ 0, { goo => 5 }, 20, 40 ], "splice" );
+    }
+
 };
 
 subtest 'array' => sub {
@@ -112,8 +133,7 @@ subtest 'array' => sub {
             },
         );
 
-        is( \@dest, [ [ 1, 2, 3, 4 ], 10, 20, 40 ],
-            "replace" );
+        is( \@dest, [ [ 1, 2, 3, 4 ], 10, 20, 40 ], "replace" );
     }
 
     {
@@ -125,12 +145,11 @@ subtest 'array' => sub {
                 dpath => '/*[0]',
                 src   => [ 1, 2, 3, 4 ],
                 spath => '/*',
-		stype => 'element',
+                stype => 'element',
             },
         );
 
-        is( \@dest, [ [ 1, 2, 3, 4 ], 0, 10, 20, 40 ],
-            "insert" );
+        is( \@dest, [ [ 1, 2, 3, 4 ], 0, 10, 20, 40 ], "insert" );
     }
 
 
@@ -160,7 +179,7 @@ subtest 'iterate' => sub {
                     dest  => [ 0, 10, 20, 40 ],
                     dpath => '/*[0]',
                     src => [ [ 1, 2, 3, 4 ], [ 5, 6, 7, 8 ] ],
-                    spath     => '/*/*[0]',
+                    spath => '/*/*[0]',
                     sxfrm => 'iterate',
                 },
               )
@@ -169,5 +188,31 @@ subtest 'iterate' => sub {
         'multiple sources not accepted for replace operation'
     );
 };
+
+subtest 'coderef' => sub {
+
+    my @dest = ( 0, 10, 20, 40 );
+
+    edit(
+        splice => {
+            sxfrm => sub ( $ctx, $spath, $args ) {
+
+                my $src = $ctx->matchr( $spath );
+                die( "source path may not have multiple resolutions\n" )
+                  if @$src > 1;
+                return [ \{ $args->{key} => $src->[0]->$* } ];
+            },
+            sxfrm_args => { key => 'goo' },
+            dest       => \@dest,
+            dpath      => '/*[1]',
+            src   => { foo => 1, bar => 5, baz => 3 },
+            spath => '/bar',
+            stype => 'element',
+        },
+    );
+
+    is( \@dest, [ 0, { goo => 5 }, 20, 40 ], "implement hash key" );
+};
+
 
 done_testing;
