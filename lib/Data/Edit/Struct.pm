@@ -47,16 +47,6 @@ my %source = (
     src   => { type => Any,       optional => 1 },
     spath => { type => Str,       optional => 1 },
     stype => { type => UseDataAs, default  => 'auto' },
-);
-
-my %length = ( length => { type => Int, default => 1 } );
-my %offset = (
-    offset => {
-        type    => IntArray,
-        default => sub { [0] }
-    } );
-
-my %sxfrm = (
     sxfrm => {
         type => Enum [ 'iterate', 'array', 'hash', 'error' ] | CodeRef,
         default => 'error'
@@ -67,15 +57,21 @@ my %sxfrm = (
     },
 );
 
+my %length = ( length => { type => Int, default => 1 } );
+my %offset = (
+    offset => {
+        type    => IntArray,
+        default => sub { [0] }
+    } );
 
 my %Validation = (
     pop    => { %dest, %length },
     shift  => { %dest, %length },
-    splice => { %dest, %length, %offset, %source, %dtype, %sxfrm },
-    insert => { %dest, %length, %offset, %source, %dtype, %sxfrm },
+    splice => { %dest, %length, %offset, %source, %dtype },
+    insert => { %dest, %length, %offset, %source, %dtype },
     delete  => { %dest, %length, %offset, },
     replace => {
-        %dest, %source, %sxfrm,
+        %dest, %source,
         replace => {
             type => Enum [ 'value', 'key', 'auto' ],
             default => 'auto',
