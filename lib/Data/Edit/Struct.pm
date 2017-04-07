@@ -23,7 +23,7 @@ use custom::failures 'Data::Edit::Struct::failure' => [ qw{
       } ];
 
 use List::Util qw[ pairmap ];
-use Scalar::Util qw[ refaddr ];
+use Scalar::Util qw[ refaddr blessed ];
 use Params::ValidationCompiler qw[ validation_for ];
 use Safe::Isa;
 
@@ -253,7 +253,7 @@ sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
 sub _deref ( $ref, $stype ) {
 
     my $use = $stype;
-    $use = is_ref( $$ref ) ? 'container' : 'element'
+    $use = is_ref( $$ref ) && ! blessed( $$ref ) ? 'container' : 'element'
       if $use eq 'auto';
 
     for ( $use ) {
@@ -644,10 +644,10 @@ results in
 
 Source structures may have the same ambiguity. In the above example,
 note that the I<contents> of the hash in the source path are inserted,
-not the reference itself.  This is because references in sources are
-by default considered to be containers, and their contents are copied.  To
-treat a source reference as an opaque element, use the L</stype> option to
-specify it as such:
+not the reference itself.  This is because non-blessed references in
+sources are by default considered to be containers, and their contents
+are copied.  To treat a source reference as an opaque element, use the
+L</stype> option to specify it as such:
 
 # EXAMPLE: examples/ex1_3.pl
 
