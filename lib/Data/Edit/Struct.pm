@@ -99,7 +99,8 @@ sub dup_context ( $context ) {
 }
 
 
-sub edit ( $action, $request ) {
+
+sub edit ( $action, $params ) {
 
     Data::Edit::Struct::failure::input::param->throw( "no action specified\n" )
       unless defined $action;
@@ -108,9 +109,9 @@ sub edit ( $action, $request ) {
       or Data::Edit::Struct::failure::input::param->throw(
         "unknown acton: $action\n" );
 
-    my %arg = $validator->( %$request );
+    my %arg = $validator->( %$params );
 
-    my $src = _sxfrm( @arg{ qw[ src spath sxfrm sxfrm_args ] } );
+    my $src = _sxfrm( @arg{qw[ src spath sxfrm sxfrm_args ]} );
 
     my $points
       = dup_context( $arg{dest} )->_search( dpathr( $arg{dpath} ) )
@@ -205,11 +206,11 @@ sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
 
             if ( exists $args->{key} ) {
 
-		my $src = $ctx->matchr( $spath );
-		Data::Edit::Struct::failure::input::src->throw(
-							       "source path may not have multiple resolutions\n" )
-		    if @$src > 1;
-		$src{ $args->{key} } = $src->[0]->$*;
+                my $src = $ctx->matchr( $spath );
+                Data::Edit::Struct::failure::input::src->throw(
+                    "source path may not have multiple resolutions\n" )
+                  if @$src > 1;
+                $src{ $args->{key} } = $src->[0]->$*;
             }
 
             else {
@@ -242,7 +243,7 @@ sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
                 "source path may not have multiple resolutions\n" )
               if @$src > 1;
 
-	    return $src;
+            return $src;
         }
 
     }
@@ -354,10 +355,7 @@ sub _splice ( $dtype, $points, $offset, $length, $replace ) {
 
                 splice( @$$parent, $idx + $offset, $length, @$replace );
             }
-
         }
-
-
     }
 }
 
