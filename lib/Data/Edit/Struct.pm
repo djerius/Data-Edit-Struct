@@ -570,5 +570,375 @@ __END__
 
 =head1 SYNOPSIS
 
+# EXAMPLE: examples/synopsis.pl
 
-=head1 SEE ALSO
+=head1 DESCRIPTION
+
+B<Data::Edit::Struct> provides a high-level interface for editing data
+within complex data structures.  Edit and source points are specified
+via L<Data::DPath> paths.
+
+The structure to be edited is termed the I<destination> structure,
+that which is the source of things to be inserted into the structure
+(if necessary) the I<source> structure.
+
+The following actions may be performed on the destination structure:
+
+=over
+
+=item  * C<pop> - remove one or more elements from the bottom of an array
+
+=item  * C<shift> - remove one or more elements from the top of an array
+
+=item  * C<splice> - invoke C<splice> on an array
+
+=item  * C<insert> - insert elements into an array or a hash
+
+=item  * C<delete> - delete array or hash elements
+
+=item  * C<replace> - replace array or hash elements (and in the latter case keys)
+
+=back
+
+=head2 Elements I<vs.> Containers
+
+B<Data::Edit::Struct> operates on elements in the destination
+structure by following a L<Data::DPath> path.  For example, if
+
+# EXAMPLE: examples/ex1_0.pl
+
+then a data path of
+
+ /bar/*[0]
+
+identifies the first element in the C<bar> array.  That element may be
+treated either as a I<container> or as an I<element> (this is
+specified by the L</dtype> option).
+
+In the above example, C<< $dest->{bar}[0] >> resolves to a scalar, so
+by default it is treated as an element.  However C<< $dest->{bar[1]}
+>> resolves to a hashref.  When operating on it, should it be treated
+as an opaque object, or as container?  For example,
+
+# EXAMPLE: examples/ex1_1.pl
+
+Should C<$src> be inserted I<into> element 2, as in
+
+# COMMAND: perl ./examples/run ./examples/ex1_0.pl ./examples/ex1_1.pl  ./examples/dump_dest.pl
+
+or should it be inserted I<before> element 2 in C<bar>, as in?
+
+# COMMAND: perl ./examples/run ./examples/ex1_0.pl ./examples/ex1_2.pl  ./examples/dump_dest.pl
+
+The first behavior treats it as a I<container>, the second as an
+I<element>.  By default destination paths which resolve to hash or
+array references are treated as B<containers>, so the above code
+generates the first behavior.  To explicitly indicate how a path
+should be treated, use the C<< dtype >> option.  For example,
+
+# EXAMPLE: examples/ex1_2.pl
+
+results in
+
+# COMMAND: perl ./examples/run ./examples/ex1_0.pl ./examples/ex1_2.pl  ./examples/dump_dest.pl
+
+Source structures may have the same ambiguity. In the above example,
+note that the I<contents> of the hash in the source path are inserted,
+not the reference itself.  This is because references in sources are
+by default considered to be containers, and their contents are copied.  To
+treat a source reference as an opaque element, use the L</stype> option to
+specify it as such:
+
+# EXAMPLE: examples/ex1_3.pl
+
+which results in
+
+# COMMAND: perl ./examples/run ./examples/ex1_0.pl ./examples/ex1_3.pl  ./examples/dump_dest.pl
+
+Note that C<dpath> was set to I<element>, otherwise C<edit> would have
+attempted to insert the source hashref (not its contents) into the
+destination hash, which would have failed, as insertion into a hash
+requires a multiple of two elements (i.e., C<< $key, $value >>).
+
+=head2 Source Transformations
+
+Data extracted from the source structure may undergo transformations
+prior to being inserted into the destination structure.  There are
+several predefined transformations and the caller may specify a
+callback to perform their own.
+
+Most of the transformations have to do with multiple values being
+returned by the source path.  For example,
+
+# EXAMPLE: examples/sxfrm1_0.pl
+
+would result in multiple extracted values:
+
+# COMMAND: perl ./examples/run examples/sxfrm1_0.pl  examples/sxfrm1_1.pl
+
+By default multiple values are not allowed, but a source
+transformation (specified by the C<sxfrm> option ) may be used to
+change that behavior.  The provided transforms are:
+
+=over
+
+=item C<array>
+
+The values are assembled into an array.  The C<stype>
+parameter is used to determine whether that array is treated as a
+container or an element.
+
+=item C<hash>
+
+The items are assembled into a hash.  The C<stype> parameter is used
+to determine whether that array is treated as a container or an
+element.  Keys are derived from the data:
+
+=over
+
+=item * Keys for hash values will be their hash keys
+
+=item * Keys for array values will be their array indices
+
+=back
+
+If there is a I<single> value, a hash key may be specified via the
+C<key> option to the C<sxfrm_args> option.
+
+=item C<iterate>
+
+The edit action is applied independently to each source value in turn.
+
+
+=item I<coderef>
+
+If C<sxfrm> is a code reference, it will be called to generate the
+source values.  See L</Source Callbacks> for more information.
+
+=back
+
+
+=head2 Source Callbacks
+
+If the C<sxfrm> option is a code reference, it is called to generate
+the source values.  It must return an array which contains I<references>
+to the values (even if they are already references).  For example,
+to return a hash:
+
+  my %src = ( foo => 1 );
+  return [ \\%hash ];
+
+It is called with the arguments
+
+=over
+
+=item C<$ctx>
+
+
+A L</Data::DPath::Context> object representing the source structure.
+
+=item C<$spath>
+
+The source path.  Unless otherwise specified, this defaults to C</>,
+I<except> in the case where the source is a scalar, in which cases it
+defaults to C</*[0]>.  This is because L</Data::DPath> requires a
+container to be at the root of the source structure, and a scalar is
+inserted into an array.
+
+=item C<$args>
+
+The value of the C<sxfrm_args> option.
+
+=back
+
+=head1 SUBROUTINES
+
+=head2  edit ( $action, $params )
+
+Edit a data structure.  The available actions are discussed below.
+
+Destination structure parameters are:
+
+=over
+
+=item C<dest>
+
+A reference to a structure or a L<Data::DPath::Context> object.
+
+=item C<dpath>
+
+A string representing the data path. This may result in multiple
+extracted values from the structure; the action will be applied to
+each in turn.
+
+=item C<dtype>
+
+May be C<auto>, C<element> or C<container>, to treat the extracted
+values either as elements or containers.
+
+=back
+
+Some actions require a source structure; parameters related
+to that are:
+
+=over
+
+=item C<src>
+
+A reference to a structure or a L<Data::DPath::Context> object.
+
+=item C<spath>
+
+A string representing the data path. This may result in multiple
+extracted values from the structure; the action will be applied to
+each in turn.
+
+=item C<stype>
+
+May be C<auto>, C<element> or C<container>, to treat the extracted
+values either as elements or containers.
+
+=back
+
+Actions may have additional parameters
+
+=head3 C<pop>
+
+Remove one or more elements from the end of an array.  The destination
+structure must be an array. Additional parameters are:
+
+
+=over
+
+=item C<length>
+
+The number of elements to remove.  Defaults to C<1>.
+
+=back
+
+
+=head3 C<shift>
+
+Remove one or more elements from the front of an array.  The
+destination structure must be an array. Additional parameters are:
+
+
+=over
+
+=item C<length>
+
+The number of elements to remove.  Defaults to C<1>.
+
+=back
+
+
+=head3 C<splice>
+
+Perform a L<splice|perlfunc/splice> operation on an array, e.g.
+
+  splice( @$dest, $offset, $length, @$src );
+
+The C<$offset> and C<$length> parameters are provided by the C<offset>
+and C<length> options.
+
+The destination structure may be an array or an array element.  In the
+latter case, the actual offset passed to splice is the sum of the
+index of the array element and the value provided by the C<offset>
+option.
+
+A source structure is optional, and may be an array or a hash.
+
+=head3 C<insert>
+
+Insert a source structure into the destination structure.  The result
+depends upon whether the point at which to insert is to be treated as
+a container or an element.
+
+=over
+
+=item container
+
+=over
+
+=item Hash
+
+If the container is a hash, the source must be a container (either
+array or hash), and must contain an even number of elements.  Each
+sequential pair of values is treated as a key, value pair.
+
+=item Array
+
+If the container is an array, the source may be either a container or
+an element. The following options are available:
+
+=over
+
+=item C<offset>
+
+The offset into the array of the insertion point.  Defaults to C<0>.
+See L</anchor>.
+
+=item C<anchor>
+
+Indicates which end of the array the C<offset> parameter is relative to.
+May be C<first> or C<last>.  It defaults to C<first>.
+
+=item C<pad>
+
+If the array must be enlarged to accomodate the specified insertion point, fill the new
+values with this value.  Defaults to C<undef>.
+
+=item C<insert>
+
+Indicates which side of the insertion point data will be inserted. May
+be either C<before> or C<after>.  It defaults to C<before>.
+
+=back
+
+=back
+
+=item element
+
+The insertion point must be an array value. The source may be either a
+container or an element. The following options are avaliable:
+
+=over
+
+=item C<offset>
+
+Move the insertion point by this value.
+
+=item C<pad>
+
+If the array must be enlarged to accomodate the specified insertion point, fill the new
+values with this value.  Defaults to C<undef>.
+
+=item C<insert>
+
+Indicates which side of the insertion point data will be inserted. May
+be either C<before> or C<after>.  It defaults to C<before>.
+
+=back
+
+=back
+
+=head2 C<delete>
+
+Remove an array or hash value.
+
+=head2 C<replace>
+
+Replace an array or hash element, or a hash key. The source data is
+always treated as an element. It takes the following options:
+
+=over
+
+
+=item C<replace>
+
+Indicates which part of a hash element to replace, either C<key> or
+C<value>.  Defaults to C<value>.  If replacing the key and the source
+value is a reference, the value returned by
+L<Scalar::Util::refaddr|Scalar::Util/reffadr> will be used.
+
+=back
