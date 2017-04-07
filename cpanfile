@@ -3,7 +3,6 @@ requires "Data::DPath" => "0.56";
 requires "Exporter" => "0";
 requires "List::Util" => "0";
 requires "Params::ValidationCompiler" => "0";
-requires "PerlX::Assert" => "0";
 requires "Ref::Util" => "0";
 requires "Safe::Isa" => "0";
 requires "Scalar::Util" => "0";
