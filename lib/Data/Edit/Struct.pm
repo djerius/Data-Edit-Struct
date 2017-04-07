@@ -68,7 +68,16 @@ my %Validation = (
     pop    => { %dest, %length },
     shift  => { %dest, %length },
     splice => { %dest, %length, %offset, %source, %dtype },
-    insert => { %dest, %length, %offset, %source, %dtype },
+    insert => {
+        %dest, %length, %offset, %source, %dtype,
+        insert => {
+            type => Enum [ 'before', 'after' ],
+            default => 'before',
+        },
+        anchor =>
+          { type => Enum [ 'first', 'last', 'index' ], default => 'first' },
+        pad => { type => Any, default => undef },
+    },
     delete  => { %dest, %length, %offset, },
     replace => {
         %dest, %source,
@@ -133,8 +142,8 @@ sub edit ( $action, $request ) {
                 "source was not specified" )
               if !defined $src;
 
-            _insert( $arg{dtype}, $points, $arg{offset},
-                _deref( $_, $arg{stype} ) )
+            _insert( $arg{dtype}, $points, $arg{insert}, $arg{anchor},
+                $arg{pad}, $arg{offset}, _deref( $_, $arg{stype} ) )
               foreach @$src;
         }
 
@@ -355,7 +364,7 @@ sub _splice ( $dtype, $points, $offset, $length, $replace ) {
 }
 
 
-sub _insert ( $dtype, $points, $offset, $src ) {
+sub _insert ( $dtype, $points, $insert, $anchor, $pad, $offset, $src ) {
 
     for my $point ( @$points ) {
 
@@ -395,11 +404,9 @@ sub _insert ( $dtype, $points, $offset, $src ) {
                     }
 
                     when ( !!is_arrayref( $$ref ) ) {
-
-                        my $array_length = scalar @$$ref;
-                        splice( @$$ref, $_, 0, @$src )
-                          for reverse sort map { $_ == -1 ? $array_length : $_ }
-                          @$offset;
+                        _insert_via_splice( $insert, $anchor, $pad, $ref, 0,
+                            $_, $src )
+                          for @$offset;
                     }
 
                     default {
@@ -423,16 +430,70 @@ sub _insert ( $dtype, $points, $offset, $src ) {
 
                 $idx //= ( $attrs // $point->attrs )->{idx};
 
-                my $array_length = scalar @$$parent;
-                splice( @$$parent, $idx + $_, 0, @$src )
-                  for reverse sort map { $_ == -1 ? $array_length - $idx : $_ }
-                  @$offset;
+                _insert_via_splice( $insert, 'index', $pad, $parent, $idx, $_,
+                    $src )
+                  for @$offset;
+            }
+        }
+    }
+}
+
+sub _insert_via_splice ( $insert, $anchor, $pad, $rdest, $idx, $offset, $src ) {
+
+    my $fididx;
+
+    for ( $anchor ) {
+
+        $fididx = 0 when ( 'first' );
+        $fididx = $$rdest->$#* when ( 'last' );
+        $fididx = $idx when ( 'index' );
+
+        default {
+            Data::Edit::Struct::failure::internal->throw(
+                "unknown insert anchor: $anchor" );
+        }
+    }
+
+    # turn relative index into positive index
+    $idx = $offset + $fididx;
+
+    # make sure there's enough room.
+    for ( $insert ) {
+
+        my $maxidx = $$rdest->$#*;
+
+        when ( 'before' ) {
+
+            if ( $idx < 0 ) {
+                unshift $$rdest->@*, ( $pad ) x ( -$idx );
+                $idx = 0;
+            }
+
+            elsif ( $idx > $maxidx + 1 ) {
+                push $$rdest->@*, ( $pad ) x ( $idx - $maxidx - 1 );
             }
         }
 
+        when ( 'after' ) {
 
+            if ( $idx < 0 ) {
+                unshift $$rdest->@*, ( $pad ) x ( -$idx - 1 ) if $idx < -1;
+                $idx = 0;
+            }
+
+            elsif ( $idx > $maxidx ) {
+                push $$rdest->@*, ( $pad ) x ( $idx - $maxidx );
+                ++$idx;
+            }
+
+            else {
+                ++$idx;
+            }
+
+        }
     }
 
+    splice( @$$rdest, $idx, 0, @$src );
 }
 
 sub _delete ( $points, $offset, $length ) {
