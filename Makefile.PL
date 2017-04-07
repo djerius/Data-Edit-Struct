@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-use 5.006;
+use 5.020;
 
 use ExtUtils::MakeMaker;
 
@@ -14,7 +14,7 @@ my %WriteMakefileArgs = (
   },
   "DISTNAME" => "Data-Edit-Struct",
   "LICENSE" => "gpl",
-  "MIN_PERL_VERSION" => "5.006",
+  "MIN_PERL_VERSION" => "5.020",
   "NAME" => "Data::Edit::Struct",
   "PREREQ_PM" => {
     "Carp" => 0,
@@ -42,6 +42,7 @@ my %WriteMakefileArgs = (
     "IPC::Open3" => 0,
     "Test2::API" => 0,
     "Test2::Bundle::Extended" => 0,
+    "Test2::Tools::Explain" => 0,
     "Test::More" => 0,
     "blib" => "1.01"
   },
@@ -68,6 +69,7 @@ my %FallbackPrereqs = (
   "Scalar::Util" => 0,
   "Test2::API" => 0,
   "Test2::Bundle::Extended" => 0,
+  "Test2::Tools::Explain" => 0,
   "Test::More" => 0,
   "Type::Library" => 0,
   "Type::Utils" => 0,
