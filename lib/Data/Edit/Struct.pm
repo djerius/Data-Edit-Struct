@@ -60,8 +60,8 @@ my %source = (
 my %length = ( length => { type => Int, default => 1 } );
 my %offset = (
     offset => {
-        type    => IntArray,
-        default => sub { [0] }
+        type    => Int,
+        default => 0,
     } );
 
 my %Validation = (
@@ -78,7 +78,7 @@ my %Validation = (
           { type => Enum [ 'first', 'last', 'index' ], default => 'first' },
         pad => { type => Any, default => undef },
     },
-    delete  => { %dest, %length, %offset, },
+    delete  => { %dest, %length },
     replace => {
         %dest, %source,
         replace => {
@@ -149,7 +149,7 @@ sub edit ( $action, $request ) {
 
 
         when ( 'delete' ) {
-            _delete( $points, $arg{offset}, $arg{length} );
+            _delete( $points, $arg{length} );
         }
 
         when ( 'replace' ) {
@@ -337,8 +337,7 @@ sub _splice ( $dtype, $points, $offset, $length, $replace ) {
                     "point is not an array reference" )
                   unless is_arrayref( $$ref );
 
-                splice( $$ref->@*, $_, $length, @$replace )
-                  for reverse sort @$offset;
+                splice( $$ref->@*, $offset, $length, @$replace );
             }
 
             when ( 'element' ) {
@@ -353,8 +352,7 @@ sub _splice ( $dtype, $points, $offset, $length, $replace ) {
                     "point is not an array element" )
                   unless defined $$parent && is_arrayref( $$parent );
 
-                splice( @$$parent, $idx + $_, $length, @$replace )
-                  for reverse sort @$offset;
+                splice( @$$parent, $idx + $offset, $length, @$replace );
             }
 
         }
@@ -405,8 +403,7 @@ sub _insert ( $dtype, $points, $insert, $anchor, $pad, $offset, $src ) {
 
                     when ( !!is_arrayref( $$ref ) ) {
                         _insert_via_splice( $insert, $anchor, $pad, $ref, 0,
-                            $_, $src )
-                          for @$offset;
+                            $offset, $src );
                     }
 
                     default {
@@ -430,9 +427,8 @@ sub _insert ( $dtype, $points, $insert, $anchor, $pad, $offset, $src ) {
 
                 $idx //= ( $attrs // $point->attrs )->{idx};
 
-                _insert_via_splice( $insert, 'index', $pad, $parent, $idx, $_,
-                    $src )
-                  for @$offset;
+                _insert_via_splice( $insert, 'index', $pad, $parent, $idx,
+                    $offset, $src );
             }
         }
     }
@@ -496,7 +492,7 @@ sub _insert_via_splice ( $insert, $anchor, $pad, $rdest, $idx, $offset, $src ) {
     splice( @$$rdest, $idx, 0, @$src );
 }
 
-sub _delete ( $points, $offset, $length ) {
+sub _delete ( $points, $length ) {
 
     for my $point ( @$points ) {
 
@@ -517,8 +513,7 @@ sub _delete ( $points, $offset, $length ) {
         }
         elsif ( exists $attr->{idx} ) {
 
-            splice( @$$parent, $attr->{idx} + $_, $length )
-              for reverse sort @$offset;
+            splice( @$$parent, $attr->{idx}, $length );
 
         }
         else {

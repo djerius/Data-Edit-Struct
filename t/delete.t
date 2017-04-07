@@ -51,36 +51,6 @@ subtest 'array section' => sub {
 
 };
 
-subtest 'array offset section' => sub {
-    my %dest = ( array => [ 0, 10, 20, 40 ], );
-
-    edit(
-        delete => {
-            dest   => \%dest,
-            dpath  => '/array/*[idx == 0]',
-            offset => 2,
-            length => 2,
-        },
-    );
-
-    is( \%dest, { array => [ 0, 10 ] }, "deleted" );
-};
-
-subtest 'array slice' => sub {
-    my %dest = ( array => [ 0, 10, 20, 40, 50 ], );
-
-    edit(
-        delete => {
-            dest   => \%dest,
-            dpath  => '/array/*[idx == 0]',
-            offset => [ 0, 2, 4 ],
-        },
-    );
-
-    is( \%dest, { array => [ 10, 40 ] }, "deleted" );
-};
-
-
 subtest 'root' => sub {
 
     my @dest = ( 0, 10, 20, 40, 50  );
@@ -90,7 +60,6 @@ subtest 'root' => sub {
 	     delete => {
 			dest   => \@dest,
 			dpath  => '/',
-			offset => [ 0, 2, 4 ],
 		       } ) },
 			 [ 'Data::Edit::Struct::failure::input::dest' ],
 			 "can't delete root"
