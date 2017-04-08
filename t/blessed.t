@@ -8,70 +8,49 @@ use Test2::Bundle::Extended;
 use Data::Edit::Struct qw[ edit ];
 
 
+subtest 'src' => sub {
 
-subtest 'hash src' => sub {
-    my $dest = [];
-    my $src = { a => 1 };
+    my $dest;
+    my $src;
 
-    edit(
-        insert => {
-            dest  => $dest,
-            dpath => '/',
-            src   => $src,
-            stype => 'auto'
-        },
-    );
+    my $edit = sub {
+        edit(
+            insert => {
+                dest  => $dest,
+                dpath => '/',
+                src   => $src,
+                stype => 'auto'
+            },
+        );
+        return $dest;
+    };
 
-    is ( $dest, [ %$src ], "unblessed" );
+    subtest 'hash' => sub {
+        $dest = [];
+        $src = { a => 1 };
 
-    $dest = [];
-    bless $src;
+        is( $edit->(), [%$src], "unblessed" );
 
-    edit(
-        insert => {
-            dest  => $dest,
-            dpath => '/',
-            src   => $src,
-            stype => 'auto'
-        },
-    );
+        $dest = [];
+        bless $src;
 
+        is( $edit->()->[0], $src, "blessed" );
+    };
 
-    is ( $dest->[0], $src, "blessed" );
+    subtest "array" => sub {
+
+        $dest = [];
+        $src = [ a => 1 ];
+
+        is( $edit->(), [@$src], "unblessed" );
+
+        $dest = [];
+        bless $src;
+
+        is( $edit->()->[0], $src, "blessed" );
+    };
+
 };
-
-subtest "array src" => sub {
-
-    my $dest = [];
-    my $src = [ a => 1 ];
-
-    edit(
-        insert => {
-            dest  => $dest,
-            dpath => '/',
-            src   => $src,
-            stype => 'auto'
-        },
-    );
-
-    is ( $dest, [ @$src ], "unblessed" );
-
-    $dest = [];
-    bless $src;
-
-    edit(
-        insert => {
-            dest  => $dest,
-            dpath => '/',
-            src   => $src,
-            stype => 'auto'
-        },
-    );
-
-
-    is ( $dest->[0], $src, "blessed" );
-};
-
 
 
 done_testing;
