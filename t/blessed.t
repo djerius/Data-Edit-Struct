@@ -9,9 +9,9 @@ use Data::Edit::Struct qw[ edit ];
 
 
 
-{
+subtest 'hash src' => sub {
     my $dest = [];
-    my $src = bless { a => 1, b => 2 }, 'Foo';
+    my $src = { a => 1 };
 
     edit(
         insert => {
@@ -22,12 +22,10 @@ use Data::Edit::Struct qw[ edit ];
         },
     );
 
-    is ( $dest->[0], $src, "blessed hash src" );
-}
+    is ( $dest, [ %$src ], "unblessed" );
 
-{
-    my $dest = [];
-    my $src = bless [ 1, 2, 3 ], 'Foo';
+    $dest = [];
+    bless $src;
 
     edit(
         insert => {
@@ -38,7 +36,42 @@ use Data::Edit::Struct qw[ edit ];
         },
     );
 
-    is ( $dest->[0], $src, "blessed array src" );
-}
+
+    is ( $dest->[0], $src, "blessed" );
+};
+
+subtest "array src" => sub {
+
+    my $dest = [];
+    my $src = [ a => 1 ];
+
+    edit(
+        insert => {
+            dest  => $dest,
+            dpath => '/',
+            src   => $src,
+            stype => 'auto'
+        },
+    );
+
+    is ( $dest, [ @$src ], "unblessed" );
+
+    $dest = [];
+    bless $src;
+
+    edit(
+        insert => {
+            dest  => $dest,
+            dpath => '/',
+            src   => $src,
+            stype => 'auto'
+        },
+    );
+
+
+    is ( $dest->[0], $src, "blessed" );
+};
+
+
 
 done_testing;
