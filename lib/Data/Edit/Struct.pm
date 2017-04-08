@@ -10,7 +10,11 @@ use Exporter 'import';
 
 our $VERSION = '0.01';
 
-use Ref::Util qw[ is_arrayref is_hashref is_scalarref is_ref is_coderef ];
+use Ref::Util qw[
+  is_plain_arrayref is_arrayref
+  is_plain_hashref  is_hashref
+  is_scalarref is_ref is_coderef
+];
 
 use Types::Standard -types;
 use Data::Edit::Struct::Types -types;
@@ -252,11 +256,11 @@ sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
 
 sub _deref ( $ref, $stype ) {
 
-    my $use = $stype;
-    $use = is_ref( $$ref ) && ! blessed( $$ref ) ? 'container' : 'element'
-      if $use eq 'auto';
+    $stype = is_plain_arrayref( $$ref ) || is_plain_hashref( $$ref )
+      ? 'container' : 'element'
+      if $stype eq 'auto';
 
-    for ( $use ) {
+    for ( $stype ) {
 
         when ( 'element' ) {
 
