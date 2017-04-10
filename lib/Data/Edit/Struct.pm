@@ -729,7 +729,7 @@ container or an element.
 =item C<hash>
 
 The items are assembled into a hash.  The C<stype> parameter is used
-to determine whether that array is treated as a container or an
+to determine whether that hash is treated as a container or an
 element.  Keys are derived from the data:
 
 =over
