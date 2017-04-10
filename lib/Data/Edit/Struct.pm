@@ -27,7 +27,7 @@ use custom::failures 'Data::Edit::Struct::failure' => [ qw{
       } ];
 
 use List::Util qw[ pairmap ];
-use Scalar::Util qw[ refaddr blessed ];
+use Scalar::Util qw[ refaddr ];
 use Params::ValidationCompiler qw[ validation_for ];
 use Safe::Isa;
 
@@ -327,9 +327,10 @@ sub _splice ( $dtype, $points, $offset, $length, $replace ) {
         if ( $use eq 'auto' ) {
 
             $ref = $point->ref;
+
             $use
-              = is_arrayref( $$ref ) ? 'container'
-              : defined $idx         ? 'element'
+              = is_plain_arrayref( $$ref ) ? 'container'
+              : defined $idx               ? 'element'
               : Data::Edit::Struct::failure::input::dest->throw(
                 "point is neither an array element nor an array ref" );
         }
@@ -378,8 +379,8 @@ sub _insert ( $dtype, $points, $insert, $anchor, $pad, $offset, $src ) {
             $ref = $point->ref;
 
             $use
-              = is_arrayref( $$ref )
-              || is_hashref( $$ref ) ? 'container'
+              = is_plain_arrayref( $$ref )
+              || is_plain_hashref( $$ref ) ? 'container'
               : defined( $attrs = $point->can( 'attrs' ) )
               && defined( $idx = $point->attrs->{idx} ) ? 'element'
               : Data::Edit::Struct::failure::input::dest->throw(
@@ -778,7 +779,8 @@ each in turn.
 =item C<dtype>
 
 May be C<auto>, C<element> or C<container>, to treat the extracted
-values either as elements or containers.
+values either as elements or containers.  If C<auto>, non-blessed
+arrays and hashes are treated as containers.
 
 =back
 
@@ -800,7 +802,8 @@ each in turn.
 =item C<stype>
 
 May be C<auto>, C<element> or C<container>, to treat the extracted
-values either as elements or containers.
+values either as elements or containers.  If C<auto>, non-blessed
+arrays and hashes are treated as containers.
 
 =back
 
