@@ -4,7 +4,7 @@ Data::Edit::Struct - Edit a Perl structure addressed with a Data::DPath path
 
 # VERSION
 
-version 0.01
+version 0.02
 
 # SYNOPSIS
 
@@ -44,8 +44,8 @@ _source_ structure.  See ["Data Copying"](#data-copying) for the copying policy.
 
 The following actions may be performed on the destination structure:
 
-- `pop` - remove one or more elements from the bottom of an array
-- `shift` - remove one or more elements from the top of an array
+- `shift` - remove one or more elements from the front of an array
+- `pop` - remove one or more elements from the end of an array
 - `splice` - invoke `splice` on an array
 - `insert` - insert elements into an array or a hash
 - `delete` - delete array or hash elements
@@ -243,7 +243,7 @@ the source structure is also changed:
     $src = { dogs => { say => "howl" } };
 
 To avoid this possible problem, `Data::Edit::Struct` can be passed
-the [`clone|/edit/clone`](https://metacpan.org/pod/clone|/edit/clone) option, which will instruct it how to
+the [`clone`](#clone) option, which will instruct it how to
 copy data.
 
 # SUBROUTINES
@@ -279,15 +279,27 @@ to that are:
 
 - `spath`
 
-    A string representing the data path. This may result in multiple
-    extracted values from the structure; the action will be applied to
-    each in turn.
+    A string representing the source path. This may result in multiple
+    extracted values from the structure; the `sxfrm` option provides
+    the context for how to interpret these values.
 
 - `stype`
 
     May be `auto`, `element` or `container`, to treat the extracted
     values either as elements or containers.  If `auto`, non-blessed
     arrays and hashes are treated as containers.
+
+- `sxfrm`
+
+    A transformation to be applied to the data extracted from the
+    source. The available values are
+
+    - `array`
+    - `hash`
+    - `iterate`
+    - _coderef_
+
+    See ["Source Transformations"](#source-transformations) for more information.
 
 - `clone`
 

@@ -864,9 +864,9 @@ A reference to a structure or a L<Data::DPath::Context> object.
 
 =item C<spath>
 
-A string representing the data path. This may result in multiple
-extracted values from the structure; the action will be applied to
-each in turn.
+A string representing the source path. This may result in multiple
+extracted values from the structure; the C<sxfrm> option provides
+the context for how to interpret these values.
 
 =item C<stype>
 
@@ -874,6 +874,24 @@ May be C<auto>, C<element> or C<container>, to treat the extracted
 values either as elements or containers.  If C<auto>, non-blessed
 arrays and hashes are treated as containers.
 
+=item C<sxfrm>
+
+A transformation to be applied to the data extracted from the
+source. The available values are
+
+=over
+
+=item C<array>
+
+=item C<hash>
+
+=item C<iterate>
+
+=item I<coderef>
+
+=back
+
+See L</Source Transformations> for more information.
 
 =item C<clone>
 
