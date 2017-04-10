@@ -183,7 +183,7 @@ sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
     my $ctx;
 
     if ( $src->$_isa( 'Data::DPath::Context' ) ) {
-        $ctx = _dup_bcontext( $src );
+        $ctx = _dup_context( $src );
     }
     else {
         $spath //= is_arrayref( $src )
