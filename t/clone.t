@@ -9,8 +9,6 @@ use Data::Edit::Struct qw[ edit ];
 use Storable 'dclone';
 use Scalar::Util 'refaddr';
 
-use DDP;
-
 my $src = {
     cow => { says => 'moo',     likes => ['hay'] },
     cat => { says => 'meow',    likes => ['mice'] },
