@@ -191,8 +191,20 @@ sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
         $ctx = _dup_context( $src );
     }
     else {
-        $spath //= is_arrayref( $src )
-          || is_hashref( $src ) ? '/' : '/*[0]';
+        if ( !defined $spath ) {
+
+            if (   is_plain_arrayref( $src )
+                || is_plain_hashref( $src ) )
+            {
+                $spath = '/';
+            }
+
+            else {
+                $src   = [$src];
+                $spath = '/*[0]';
+            }
+        }
+
         $ctx = dpathi( $src );
         $ctx->give_references( 1 );
     }
@@ -766,10 +778,13 @@ A L</Data::DPath::Context> object representing the source structure.
 =item C<$spath>
 
 The source path.  Unless otherwise specified, this defaults to C</>,
-I<except> in the case where the source is a scalar, in which cases it
-defaults to C</*[0]>.  This is because L</Data::DPath> requires a
-container to be at the root of the source structure, and a scalar is
-inserted into an array.
+I<except> when the source is not a plain array or plain
+hash, in which case the source is embedded in an array, and C<spath> is set to C</*[0]>.
+
+This is because L</Data::DPath> requires a container to be at the root
+of the source structure, and anything other than a plain array or hash
+is most likely a blessed object or a scalar, both of which should be
+treated as elements.
 
 =item C<$args>
 
