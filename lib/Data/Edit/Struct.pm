@@ -274,9 +274,8 @@ sub _deref ( $ref, $stype ) {
             return
                 is_arrayref( $$ref )  ? $$ref
               : is_hashref( $$ref )   ? [%$$ref]
-              : is_scalarref( $$ref ) ? [$$$ref]
               : Data::Edit::Struct::failure::input::src->throw(
-                "\$value is not an array, hash, or scalar reference" );
+                "\$value is not an array or hash reference" );
         }
 
         default {
