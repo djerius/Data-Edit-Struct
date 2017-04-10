@@ -1,2 +1,2 @@
 
-dd( $dest );
+print '$dest = ', dump( $dest ), ';';

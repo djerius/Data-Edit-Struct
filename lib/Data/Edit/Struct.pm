@@ -577,7 +577,7 @@ __END__
 
 =head1 SYNOPSIS
 
-# EXAMPLE: examples/synopsis.pl
+# EXAMPLE: ./examples/synopsis.pl
 
 =head1 DESCRIPTION
 
@@ -612,7 +612,7 @@ The following actions may be performed on the destination structure:
 B<Data::Edit::Struct> operates on elements in the destination
 structure by following a L<Data::DPath> path.  For example, if
 
-# EXAMPLE: examples/ex1_0.pl
+# EXAMPLE: ./examples/ex1_0.pl
 
 then a data path of
 
@@ -627,15 +627,15 @@ by default it is treated as an element.  However C<< $dest->{bar[1]}
 >> resolves to a hashref.  When operating on it, should it be treated
 as an opaque object, or as container?  For example,
 
-# EXAMPLE: examples/ex1_1.pl
+# EXAMPLE: ./examples/ex1_1.pl
 
 Should C<$src> be inserted I<into> element 2, as in
 
-# COMMAND: perl ./examples/run ./examples/ex1_0.pl ./examples/ex1_1.pl  ./examples/dump_dest.pl
+# COMMAND: perl ./examples/run ex1_0.pl ex1_1.pl  dump_dest.pl
 
 or should it be inserted I<before> element 2 in C<bar>, as in?
 
-# COMMAND: perl ./examples/run ./examples/ex1_0.pl ./examples/ex1_2.pl  ./examples/dump_dest.pl
+# COMMAND: perl ./examples/run ex1_0.pl ex1_2.pl  dump_dest.pl
 
 The first behavior treats it as a I<container>, the second as an
 I<element>.  By default destination paths which resolve to hash or
@@ -643,11 +643,11 @@ array references are treated as B<containers>, so the above code
 generates the first behavior.  To explicitly indicate how a path
 should be treated, use the C<< dtype >> option.  For example,
 
-# EXAMPLE: examples/ex1_2.pl
+# EXAMPLE: ./examples/ex1_2.pl
 
 results in
 
-# COMMAND: perl ./examples/run ./examples/ex1_0.pl ./examples/ex1_2.pl  ./examples/dump_dest.pl
+# COMMAND: perl ./examples/run ex1_0.pl ex1_2.pl  dump_dest.pl
 
 Source structures may have the same ambiguity. In the above example,
 note that the I<contents> of the hash in the source path are inserted,
@@ -656,11 +656,11 @@ sources are by default considered to be containers, and their contents
 are copied.  To treat a source reference as an opaque element, use the
 L</stype> option to specify it as such:
 
-# EXAMPLE: examples/ex1_3.pl
+# EXAMPLE: ./examples/ex1_3.pl
 
 which results in
 
-# COMMAND: perl ./examples/run ./examples/ex1_0.pl ./examples/ex1_3.pl  ./examples/dump_dest.pl
+# COMMAND: perl ./examples/run ex1_0.pl ex1_3.pl  dump_dest.pl
 
 Note that C<dpath> was set to I<element>, otherwise C<edit> would have
 attempted to insert the source hashref (not its contents) into the
@@ -677,7 +677,7 @@ callback to perform their own.
 Most of the transformations have to do with multiple values being
 returned by the source path.  For example,
 
-# EXAMPLE: examples/sxfrm1_0.pl
+# EXAMPLE: ./examples/sxfrm1_0.pl
 
 would result in multiple extracted values:
 
