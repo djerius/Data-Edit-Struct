@@ -61,6 +61,10 @@ my %source = (
         type    => HashRef,
         default => sub { {} },
     },
+    clone => {
+        type    => Bool | CodeRef,
+        default => 0
+    },
 );
 
 my %length = ( length => { type => Int, default => 1 } );
@@ -139,8 +143,8 @@ sub edit ( $action, $params ) {
 
             $src //= [ \[] ];
 
-            _splice( $arg{dtype}, $points,
-                $arg{offset}, $arg{length}, _deref( $_, $arg{stype} ) )
+            _splice( $arg{dtype}, $points, $arg{offset}, $arg{length},
+                _deref( $_, $arg{stype}, $arg{clone} ) )
               foreach @$src;
         }
 
@@ -150,7 +154,8 @@ sub edit ( $action, $params ) {
               if !defined $src;
 
             _insert( $arg{dtype}, $points, $arg{insert}, $arg{anchor},
-                $arg{pad}, $arg{offset}, _deref( $_, $arg{stype} ) )
+                $arg{pad}, $arg{offset},
+                _deref( $_, $arg{stype}, $arg{clone} ) )
               foreach @$src;
         }
 
@@ -256,24 +261,31 @@ sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
 }
 
 
-sub _deref ( $ref, $stype ) {
+sub _clone ( $ref ) {
 
-    $stype = is_plain_arrayref( $$ref ) || is_plain_hashref( $$ref )
-      ? 'container' : 'element'
+    require Storable;
+
+    return Storable::dclone( $ref );
+}
+
+sub _deref ( $ref, $stype, $clone ) {
+
+    $stype = is_plain_arrayref( $$ref )
+      || is_plain_hashref( $$ref ) ? 'container' : 'element'
       if $stype eq 'auto';
 
+    my $struct;
     for ( $stype ) {
 
         when ( 'element' ) {
-
-            return [$$ref];
+            $struct = [$$ref];
         }
 
         when ( 'container' ) {
 
-            return
-                is_arrayref( $$ref )  ? $$ref
-              : is_hashref( $$ref )   ? [%$$ref]
+            $struct
+              = is_arrayref( $$ref ) ? $$ref
+              : is_hashref( $$ref )  ? [%$$ref]
               : Data::Edit::Struct::failure::input::src->throw(
                 "\$value is not an array or hash reference" );
         }
@@ -285,6 +297,14 @@ sub _deref ( $ref, $stype ) {
         }
 
     }
+
+    $clone = \&_clone unless is_coderef( $clone ) || !$clone;
+
+    return
+        is_coderef( $clone ) ? $clone->( $struct )
+      : $clone               ? _clone( $struct )
+      :                        $struct;
+
 }
 
 sub _pop ( $points, $length ) {
@@ -584,9 +604,9 @@ B<Data::Edit::Struct> provides a high-level interface for editing data
 within complex data structures.  Edit and source points are specified
 via L<Data::DPath> paths.
 
-The structure to be edited is termed the I<destination> structure,
-that which is the source of things to be inserted into the structure
-(if necessary) the I<source> structure.
+The I<destination> structure is the structure to be edited.  If data
+are to be inserted into the structure, they are extracted from the
+I<source> structure.  See L</Data Copying> for the copying policy.
 
 The following actions may be performed on the destination structure:
 
@@ -757,6 +777,39 @@ The value of the C<sxfrm_args> option.
 
 =back
 
+=head2 Data Copying
+
+By defult, copying of data from the source structure is done
+I<shallowly>, e.g. references to arrays or hashes are not copied
+recursively.  This may cause problems if further modifications are
+made to the destination structure which may, through references,
+alter the source structure.
+
+For example, given the following input structures:
+
+# EXAMPLE: ./examples/copy1_0.pl
+
+and this edit operation:
+
+# EXAMPLE: ./examples/copy1_1.pl
+
+We get a destination structure that looks like this:
+
+# COMMAND: perl ./examples/run copy1_0.pl copy1_1.pl  dump_dest.pl
+
+But if later we change C<$dest>,
+
+# EXAMPLE: ./examples/copy1_2.pl
+
+the source structure is also changed:
+
+# COMMAND: perl ./examples/run copy1_0.pl copy1_1.pl  copy1_2.pl dump_src.pl
+
+To avoid this possible problem, C<Data::Edit::Struct> can be passed
+the L<< C<clone|/edit/clone> >> option, which will instruct it how to
+copy data.
+
+
 =head1 SUBROUTINES
 
 =head2  edit ( $action, $params )
@@ -769,7 +822,7 @@ Destination structure parameters are:
 
 =item C<dest>
 
-A reference to a structure or a L<Data::DPath::Context> object.
+A reference to a structure or a L<< Data::DPath::Context >> object.
 
 =item C<dpath>
 
@@ -805,6 +858,14 @@ each in turn.
 May be C<auto>, C<element> or C<container>, to treat the extracted
 values either as elements or containers.  If C<auto>, non-blessed
 arrays and hashes are treated as containers.
+
+
+=item C<clone>
+
+This may be a boolean or a code reference.  If a boolean, and true,
+L<Storable/dclone> is used to clone the source structure.  If set to a
+code reference, it is called with a I<reference> to the structure to
+be cloned.  It should return a I<reference> to the cloned structure.
 
 =back
 
