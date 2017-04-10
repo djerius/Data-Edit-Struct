@@ -38,9 +38,9 @@ version 0.01
 within complex data structures.  Edit and source points are specified
 via [Data::DPath](https://metacpan.org/pod/Data::DPath) paths.
 
-The structure to be edited is termed the _destination_ structure,
-that which is the source of things to be inserted into the structure
-(if necessary) the _source_ structure.
+The _destination_ structure is the structure to be edited.  If data
+are to be inserted into the structure, they are extracted from the
+_source_ structure.  See ["Data Copying"](#data-copying) for the copying policy.
 
 The following actions may be performed on the destination structure:
 
@@ -80,11 +80,11 @@ as an opaque object, or as container?  For example,
 
 Should `$src` be inserted _into_ element 2, as in
 
-    { bar => [2, { cats => "rule", dogs => "rule" }, 4] }
+    $dest = { bar => [2, { cats => "rule", dogs => "rule" }, 4] };
 
 or should it be inserted _before_ element 2 in `bar`, as in?
 
-    { bar => [2, "dogs", "rule", { cats => "rule" }, 4] }
+    $dest = { bar => [2, "dogs", "rule", { cats => "rule" }, 4] };
 
 The first behavior treats it as a _container_, the second as an
 _element_.  By default destination paths which resolve to hash or
@@ -102,7 +102,7 @@ should be treated, use the `dtype` option.  For example,
 
 results in
 
-    { bar => [2, "dogs", "rule", { cats => "rule" }, 4] }
+    $dest = { bar => [2, "dogs", "rule", { cats => "rule" }, 4] };
 
 Source structures may have the same ambiguity. In the above example,
 note that the _contents_ of the hash in the source path are inserted,
@@ -122,7 +122,7 @@ are copied.  To treat a source reference as an opaque element, use the
 
 which results in
 
-    { bar => [2, { dogs => "rule" }, { cats => "rule" }, 4] }
+    $dest = { bar => [2, { dogs => "rule" }, { cats => "rule" }, 4] };
 
 Note that `dpath` was set to _element_, otherwise `edit` would have
 attempted to insert the source hashref (not its contents) into the
@@ -205,6 +205,44 @@ It is called with the arguments
 
     The value of the `sxfrm_args` option.
 
+## Data Copying
+
+By defult, copying of data from the source structure is done
+_shallowly_, e.g. references to arrays or hashes are not copied
+recursively.  This may cause problems if further modifications are
+made to the destination structure which may, through references,
+alter the source structure.
+
+For example, given the following input structures:
+
+    $src  = { dogs => { say => 'bark' } };
+    $dest = { cats => { say => 'meow' } };
+
+and this edit operation:
+
+    edit(
+        insert => {
+                  src  => $src,
+                  dest => $dest,
+        } );
+
+We get a destination structure that looks like this:
+
+    $dest = { cats => { say => "meow" }, dogs => { say => "bark" } };
+
+But if later we change `$dest`,
+
+    # dogs are more excited now
+    $dest->{dogs}{say} = 'howl';
+
+the source structure is also changed:
+
+    $src = { dogs => { say => "howl" } };
+
+To avoid this possible problem, `Data::Edit::Struct` can be passed
+the [`clone|/edit/clone`](https://metacpan.org/pod/clone|/edit/clone) option, which will instruct it how to
+copy data.
+
 # SUBROUTINES
 
 ## edit ( $action, $params )
@@ -226,7 +264,8 @@ Destination structure parameters are:
 - `dtype`
 
     May be `auto`, `element` or `container`, to treat the extracted
-    values either as elements or containers.
+    values either as elements or containers.  If `auto`, non-blessed
+    arrays and hashes are treated as containers.
 
 Some actions require a source structure; parameters related
 to that are:
@@ -244,7 +283,15 @@ to that are:
 - `stype`
 
     May be `auto`, `element` or `container`, to treat the extracted
-    values either as elements or containers.
+    values either as elements or containers.  If `auto`, non-blessed
+    arrays and hashes are treated as containers.
+
+- `clone`
+
+    This may be a boolean or a code reference.  If a boolean, and true,
+    ["dclone" in Storable](https://metacpan.org/pod/Storable#dclone) is used to clone the source structure.  If set to a
+    code reference, it is called with a _reference_ to the structure to
+    be cloned.  It should return a _reference_ to the cloned structure.
 
 Actions may have additional parameters
 

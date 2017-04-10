@@ -6,6 +6,7 @@ requires "Params::ValidationCompiler" => "0";
 requires "Ref::Util" => "0";
 requires "Safe::Isa" => "0";
 requires "Scalar::Util" => "0";
+requires "Storable" => "0";
 requires "Type::Library" => "0";
 requires "Type::Utils" => "0";
 requires "Types::Standard" => "0";
@@ -17,6 +18,7 @@ requires "strict" => "0";
 requires "warnings" => "0";
 
 on 'test' => sub {
+  requires "DDP" => "0";
   requires "ExtUtils::MakeMaker" => "0";
   requires "File::Spec" => "0";
   requires "IO::Handle" => "0";
