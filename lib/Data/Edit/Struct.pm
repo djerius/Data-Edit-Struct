@@ -624,9 +624,9 @@ The following actions may be performed on the destination structure:
 
 =over
 
-=item  * C<pop> - remove one or more elements from the bottom of an array
+=item  * C<shift> - remove one or more elements from the front of an array
 
-=item  * C<shift> - remove one or more elements from the top of an array
+=item  * C<pop> - remove one or more elements from the end of an array
 
 =item  * C<splice> - invoke C<splice> on an array
 
