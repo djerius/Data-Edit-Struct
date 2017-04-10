@@ -8,7 +8,7 @@ use experimental qw[ postderef switch signatures ];
 
 use Exporter 'import';
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Ref::Util qw[
   is_plain_arrayref is_arrayref
