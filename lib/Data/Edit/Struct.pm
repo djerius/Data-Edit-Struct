@@ -33,6 +33,8 @@ use Safe::Isa;
 
 use Data::DPath qw[ dpath dpathr dpathi ];
 
+## no critic(ProhibitSubroutinePrototypes)
+
 # uncomment to run coverage tests, as Safe compartment makes
 # Devel::Cover whimper
 #
@@ -97,7 +99,7 @@ my %Validator
   = map { $_ => validation_for( params => $Validation{$_}, name => $_ ) }
   keys %Validation;
 
-sub dup_context ( $context ) {
+sub _dup_context ( $context ) {
     Data::DPath::Context->new( give_references => 1 )
       ->current_points( $context->current_points );
 }
@@ -118,7 +120,7 @@ sub edit ( $action, $params ) {
     my $src = _sxfrm( @arg{qw[ src spath sxfrm sxfrm_args ]} );
 
     my $points
-      = dup_context( $arg{dest} )->_search( dpathr( $arg{dpath} ) )
+      = _dup_context( $arg{dest} )->_search( dpathr( $arg{dpath} ) )
       ->current_points;
 
     for ( $action ) {
@@ -181,7 +183,7 @@ sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
     my $ctx;
 
     if ( $src->$_isa( 'Data::DPath::Context' ) ) {
-        $ctx = dup_context( $src );
+        $ctx = _dup_bcontext( $src );
     }
     else {
         $spath //= is_arrayref( $src )
