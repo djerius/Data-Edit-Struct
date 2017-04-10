@@ -821,7 +821,7 @@ the source structure is also changed:
 # COMMAND: perl ./examples/run copy1_0.pl copy1_1.pl  copy1_2.pl dump_src.pl
 
 To avoid this possible problem, C<Data::Edit::Struct> can be passed
-the L<< C<clone|/edit/clone> >> option, which will instruct it how to
+the L<< C<clone>|/clone >> option, which will instruct it how to
 copy data.
 
 
