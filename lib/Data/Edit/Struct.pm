@@ -100,7 +100,10 @@ my %Validation = (
 );
 
 my %Validator
-  = map { $_ => validation_for( params => $Validation{$_}, name => $_ ) }
+  = map { $_ => validation_for( params => $Validation{$_},
+                                name => $_,
+                                name_is_optional => 1,
+                              ) }
   keys %Validation;
 
 sub _dup_context ( $context ) {
