@@ -159,7 +159,7 @@ change that behavior.  The provided transforms are:
 - `hash`
 
     The items are assembled into a hash.  The `stype` parameter is used
-    to determine whether that array is treated as a container or an
+    to determine whether that hash is treated as a container or an
     element.  Keys are derived from the data:
 
     - Keys for hash values will be their hash keys
