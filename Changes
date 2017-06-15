@@ -2,6 +2,13 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.03      2017-06-15 14:12:11-04:00 America/New_York (TRIAL RELEASE)
+
+  [ BUILD FIX ]
+
+    * specify minimum version of Params::ValidationCompiler to
+      ensure name_is_optional parameter is available
+
 0.02      2017-04-17 17:54:04-04:00 America/New_York (TRIAL RELEASE)
 
   [ BUG FIX ]
