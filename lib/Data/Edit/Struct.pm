@@ -4,7 +4,7 @@ package Data::Edit::Struct;
 
 use strict;
 use warnings;
-use experimental qw[ postderef switch ];
+use experimental qw[ postderef ];
 
 use Exporter 'import';
 
@@ -99,11 +99,13 @@ my %Validation = (
     },
 );
 
-my %Validator
-  = map { $_ => validation_for( params => $Validation{$_},
-                                name => $_,
-                                name_is_optional => 1,
-                              ) }
+my %Validator = map {
+    $_ => validation_for(
+        params           => $Validation{$_},
+        name             => $_,
+        name_is_optional => 1,
+      )
+  }
   keys %Validation;
 
 sub _dup_context {
@@ -118,7 +120,7 @@ sub _dup_context {
 
 sub edit {
 
-    my  ( $action, $params ) = @_;
+    my ( $action, $params ) = @_;
 
     Data::Edit::Struct::failure::input::param->throw( "no action specified\n" )
       unless defined $action;
@@ -135,57 +137,55 @@ sub edit {
       = _dup_context( $arg{dest} )->_search( dpathr( $arg{dpath} ) )
       ->current_points;
 
-    for ( $action ) {
-
-        when ( 'pop' ) {
-            _pop( $points, $arg{length} );
-        }
-
-        when ( 'shift' ) {
-
-            _shift( $points, $arg{length} );
-
-        }
-
-        when ( 'splice' ) {
-
-            $src //= [ \[] ];
-
-            _splice( $arg{dtype}, $points, $arg{offset}, $arg{length},
-                _deref( $_, $arg{stype}, $arg{clone} ) )
-              foreach @$src;
-        }
-
-        when ( 'insert' ) {
-            Data::Edit::Struct::failure::input::src->throw(
-                "source was not specified" )
-              if !defined $src;
-
-            _insert( $arg{dtype}, $points, $arg{insert}, $arg{anchor},
-                $arg{pad}, $arg{offset},
-                _deref( $_, $arg{stype}, $arg{clone} ) )
-              foreach @$src;
-        }
-
-
-        when ( 'delete' ) {
-            _delete( $points, $arg{length} );
-        }
-
-        when ( 'replace' ) {
-
-            Data::Edit::Struct::failure::input::src->throw(
-                "source was not specified" )
-              if !defined $src;
-
-            Data::Edit::Struct::failure::input::src->throw(
-                "source path may not have multiple resolutions" )
-              if @$src > 1;
-
-            _replace( $points, $arg{replace}, $src->[0] );
-        }
+    if ( $action eq 'pop' ) {
+        _pop( $points, $arg{length} );
     }
 
+    elsif ( $action eq 'shift' ) {
+        _shift( $points, $arg{length} );
+    }
+
+    elsif ( $action eq 'splice' ) {
+
+        $src //= [ \[] ];
+
+        _splice( $arg{dtype}, $points, $arg{offset}, $arg{length},
+            _deref( $_, $arg{stype}, $arg{clone} ) )
+          foreach @$src;
+    }
+
+    elsif ( $action eq 'insert' ) {
+        Data::Edit::Struct::failure::input::src->throw(
+            "source was not specified" )
+          if !defined $src;
+
+        _insert( $arg{dtype}, $points, $arg{insert}, $arg{anchor},
+            $arg{pad}, $arg{offset}, _deref( $_, $arg{stype}, $arg{clone} ) )
+          foreach @$src;
+    }
+
+
+    elsif ( $action eq 'delete' ) {
+        _delete( $points, $arg{length} );
+    }
+
+    elsif ( $action eq 'replace' ) {
+
+        Data::Edit::Struct::failure::input::src->throw(
+            "source was not specified" )
+          if !defined $src;
+
+        Data::Edit::Struct::failure::input::src->throw(
+            "source path may not have multiple resolutions" )
+          if @$src > 1;
+
+        _replace( $points, $arg{replace}, $src->[0] );
+    }
+
+    else {
+        Data::Edit::Struct::failure::internal->throw(
+            "unexpected action: $action" );
+    }
 }
 
 
@@ -221,64 +221,59 @@ sub _sxfrm {
 
     $spath = dpath( $spath );
 
-    for ( $sxfrm ) {
+    if ( is_coderef( $sxfrm ) ) {
+        return $sxfrm->( $ctx, $spath, $args );
+    }
 
-        when ( !!is_coderef( $_ ) ) {
+    elsif ( $sxfrm eq 'array' ) {
+        $ctx->give_references( 0 );
+        return [ \$ctx->matchr( $spath ) ];
+    }
 
-            return $_->( $ctx, $spath, $args );
-        }
+    elsif ( $sxfrm eq 'hash' ) {
 
-        when ( 'array' ) {
-            $ctx->give_references( 0 );
-            return [ \$ctx->matchr( $spath ) ];
-        }
+        my %src;
 
-        when ( 'hash' ) {
-
-            my %src;
-
-            if ( exists $args->{key} ) {
-
-                my $src = $ctx->matchr( $spath );
-                Data::Edit::Struct::failure::input::src->throw(
-                    "source path may not have multiple resolutions\n" )
-                  if @$src > 1;
-                $src{ $args->{key} } = $src->[0]->$*;
-            }
-
-            else {
-
-                $ctx->give_references( 0 );
-                for my $point ( $ctx->_search( $spath )->current_points->@* ) {
-
-                    my $attrs = $point->attrs;
-                    defined( my $key = $attrs->{key} // $attrs->{idx} )
-                      or Data::Edit::Struct::failure::input::src->throw(
-                        "source path returned multiple values; unable to convert into hash as element has no `key' or `idx' attribute\n"
-                      );
-                    $src{$key} = $point->ref->$*;
-                }
-            }
-
-            return [ \\%src ];
-        }
-
-        when ( 'iterate' ) {
-
-            return $ctx->matchr( $spath );
-
-        }
-
-        default {
+        if ( exists $args->{key} ) {
 
             my $src = $ctx->matchr( $spath );
             Data::Edit::Struct::failure::input::src->throw(
                 "source path may not have multiple resolutions\n" )
               if @$src > 1;
-
-            return $src;
+            $src{ $args->{key} } = $src->[0]->$*;
         }
 
+        else {
+
+            $ctx->give_references( 0 );
+            for my $point ( $ctx->_search( $spath )->current_points->@* ) {
+
+                my $attrs = $point->attrs;
+                defined( my $key = $attrs->{key} // $attrs->{idx} )
+                  or Data::Edit::Struct::failure::input::src->throw(
+                    "source path returned multiple values; unable to convert into hash as element has no `key' or `idx' attribute\n"
+                  );
+                $src{$key} = $point->ref->$*;
+            }
+        }
+
+        return [ \\%src ];
+    }
+
+    elsif ( $sxfrm eq 'iterate' ) {
+
+        return $ctx->matchr( $spath );
+
+    }
+
+    else {
+
+        my $src = $ctx->matchr( $spath );
+        Data::Edit::Struct::failure::input::src->throw(
+            "source path may not have multiple resolutions\n" )
+          if @$src > 1;
+
+        return $src;
     }
 }
 
@@ -301,27 +296,22 @@ sub _deref {
       if $stype eq 'auto';
 
     my $struct;
-    for ( $stype ) {
+    if ( $stype eq 'element' ) {
+        $struct = [$$ref];
+    }
 
-        when ( 'element' ) {
-            $struct = [$$ref];
-        }
+    elsif ( $stype eq 'container' ) {
 
-        when ( 'container' ) {
+        $struct
+          = is_arrayref( $$ref ) ? $$ref
+          : is_hashref( $$ref )  ? [%$$ref]
+          : Data::Edit::Struct::failure::input::src->throw(
+            "\$value is not an array or hash reference" );
+    }
 
-            $struct
-              = is_arrayref( $$ref ) ? $$ref
-              : is_hashref( $$ref )  ? [%$$ref]
-              : Data::Edit::Struct::failure::input::src->throw(
-                "\$value is not an array or hash reference" );
-        }
-
-        default {
-
-            Data::Edit::Struct::failure::internal->throw(
-                "internal error: unknown mode to use source in: $_" );
-        }
-
+    else {
+        Data::Edit::Struct::failure::internal->throw(
+            "internal error: unknown mode to use source in: $_" );
     }
 
     $clone = \&_clone unless is_coderef( $clone ) || !$clone;
@@ -330,7 +320,6 @@ sub _deref {
         is_coderef( $clone ) ? $clone->( $struct )
       : $clone               ? _clone( $struct )
       :                        $struct;
-
 }
 
 sub _pop {
@@ -388,31 +377,33 @@ sub _splice {
                 "point is neither an array element nor an array ref" );
         }
 
-        for ( $use ) {
+        if ( $use eq 'container' ) {
+            $ref //= $point->ref;
+            Data::Edit::Struct::failure::input::dest->throw(
+                "point is not an array reference" )
+              unless is_arrayref( $$ref );
 
-            when ( 'container' ) {
-                $ref //= $point->ref;
-                Data::Edit::Struct::failure::input::dest->throw(
-                    "point is not an array reference" )
-                  unless is_arrayref( $$ref );
+            splice( $$ref->@*, $offset, $length, @$replace );
+        }
 
-                splice( $$ref->@*, $offset, $length, @$replace );
-            }
+        elsif ( $use eq 'element' ) {
 
-            when ( 'element' ) {
+            my $rparent = $point->parent;
+            my $parent
+              = defined( $rparent )
+              ? $rparent->ref
+              : undef;
 
-                my $rparent = $point->parent;
-                my $parent
-                  = defined( $rparent )
-                  ? $rparent->ref
-                  : undef;
+            Data::Edit::Struct::failure::input::dest->throw(
+                "point is not an array element" )
+              unless defined $$parent && is_arrayref( $$parent );
 
-                Data::Edit::Struct::failure::input::dest->throw(
-                    "point is not an array element" )
-                  unless defined $$parent && is_arrayref( $$parent );
+            splice( @$$parent, $idx + $offset, $length, @$replace );
+        }
 
-                splice( @$$parent, $idx + $offset, $length, @$replace );
-            }
+        else {
+            Data::Edit::Struct::failure::internal->throw(
+                "_splice: unknown use: $use" );
         }
     }
 }
@@ -442,52 +433,50 @@ sub _insert {
                 "point is neither an array element nor an array ref" );
         }
 
-        for ( $use ) {
+        if ( $use eq 'container' ) {
 
-            when ( 'container' ) {
+            $ref //= $point->ref;
 
-                $ref //= $point->ref;
+            if ( is_hashref( $$ref ) ) {
 
-                for ( $ref ) {
+                Data::Edit::Struct::failure::input::src->throw(
+                    "insertion into a hash requires an even number of elements\n"
+                ) if @$src % 2;
 
-                    when ( !!is_hashref( $$ref ) ) {
-
-                        Data::Edit::Struct::failure::input::src->throw(
-                            "insertion into a hash requires an even number of elements\n"
-                        ) if @$src % 2;
-
-                        pairmap { ; $$ref->{$a} = $b } @$src;
-                    }
-
-                    when ( !!is_arrayref( $$ref ) ) {
-                        _insert_via_splice( $insert, $anchor, $pad, $ref, 0,
-                            $offset, $src );
-                    }
-
-                    default {
-                        Data::Edit::Struct::failure::input::dest->throw(
-                            "can't insert into a reference of type @{[ ref $$ref]}"
-                        );
-                    }
-                }
+                pairmap { ; $$ref->{$a} = $b } @$src;
             }
 
-            when ( 'element' ) {
-                my $rparent = $point->parent;
-                my $parent
-                  = defined( $rparent )
-                  ? $rparent->ref
-                  : undef;
-
-                Data::Edit::Struct::failure::input::dest->throw(
-                    "point is not an array element" )
-                  unless defined $parent && is_arrayref( $$parent );
-
-                $idx //= ( $attrs // $point->attrs )->{idx};
-
-                _insert_via_splice( $insert, 'index', $pad, $parent, $idx,
+            elsif ( is_arrayref( $$ref ) ) {
+                _insert_via_splice( $insert, $anchor, $pad, $ref, 0,
                     $offset, $src );
             }
+
+            else {
+                Data::Edit::Struct::failure::input::dest->throw(
+                    "can't insert into a reference of type @{[ ref $$ref]}" );
+            }
+        }
+
+        elsif ( $use eq 'element' ) {
+            my $rparent = $point->parent;
+            my $parent
+              = defined( $rparent )
+              ? $rparent->ref
+              : undef;
+
+            Data::Edit::Struct::failure::input::dest->throw(
+                "point is not an array element" )
+              unless defined $parent && is_arrayref( $$parent );
+
+            $idx //= ( $attrs // $point->attrs )->{idx};
+
+            _insert_via_splice( $insert, 'index', $pad, $parent, $idx,
+                $offset, $src );
+        }
+
+        else {
+            Data::Edit::Struct::failure::internal->throw(
+                "_insert: unknown use: $use" );
         }
     }
 }
@@ -498,55 +487,59 @@ sub _insert_via_splice {
 
     my $fididx;
 
-    for ( $anchor ) {
+    if ( $anchor eq 'first' ) {
+        $fididx = 0;
+    }
+    elsif ( $anchor eq 'last' ) {
+        $fididx = $$rdest->$#*;
+    }
+    elsif ( $anchor eq 'index' ) {
+        $fididx = $idx;
+    }
 
-        $fididx = 0 when ( 'first' );
-        $fididx = $$rdest->$#* when ( 'last' );
-        $fididx = $idx when ( 'index' );
-
-        default {
-            Data::Edit::Struct::failure::internal->throw(
-                "unknown insert anchor: $anchor" );
-        }
+    else {
+        Data::Edit::Struct::failure::internal->throw(
+            "unknown insert anchor: $anchor" );
     }
 
     # turn relative index into positive index
     $idx = $offset + $fididx;
 
     # make sure there's enough room.
-    for ( $insert ) {
+    my $maxidx = $$rdest->$#*;
 
-        my $maxidx = $$rdest->$#*;
+    if ( $insert eq 'before' ) {
 
-        when ( 'before' ) {
-
-            if ( $idx < 0 ) {
-                unshift $$rdest->@*, ( $pad ) x ( -$idx );
-                $idx = 0;
-            }
-
-            elsif ( $idx > $maxidx + 1 ) {
-                push $$rdest->@*, ( $pad ) x ( $idx - $maxidx - 1 );
-            }
+        if ( $idx < 0 ) {
+            unshift $$rdest->@*, ( $pad ) x ( -$idx );
+            $idx = 0;
         }
 
-        when ( 'after' ) {
-
-            if ( $idx < 0 ) {
-                unshift $$rdest->@*, ( $pad ) x ( -$idx - 1 ) if $idx < -1;
-                $idx = 0;
-            }
-
-            elsif ( $idx > $maxidx ) {
-                push $$rdest->@*, ( $pad ) x ( $idx - $maxidx );
-                ++$idx;
-            }
-
-            else {
-                ++$idx;
-            }
-
+        elsif ( $idx > $maxidx + 1 ) {
+            push $$rdest->@*, ( $pad ) x ( $idx - $maxidx - 1 );
         }
+    }
+
+    elsif ( $insert eq 'after' ) {
+
+        if ( $idx < 0 ) {
+            unshift $$rdest->@*, ( $pad ) x ( -$idx - 1 ) if $idx < -1;
+            $idx = 0;
+        }
+
+        elsif ( $idx > $maxidx ) {
+            push $$rdest->@*, ( $pad ) x ( $idx - $maxidx );
+            ++$idx;
+        }
+
+        else {
+            ++$idx;
+        }
+
+    }
+    else {
+        Data::Edit::Struct::failure::internal->throw(
+            "_insert_via_splice: unknown insert point: $insert" );
     }
 
     splice( @$$rdest, $idx, 0, @$src );
@@ -579,7 +572,7 @@ sub _delete {
 
         }
         else {
-            Data::Edit::Struct::failure::input::internal->throw(
+            Data::Edit::Struct::failure::internal->throw(
                 "point has neither idx nor key attribute" );
         }
 
@@ -596,34 +589,33 @@ sub _replace {
         $replace = 'value'
           if $replace eq 'auto';
 
-        for ( $replace ) {
-
-            when ( 'value' ) {
-                $point->ref->$* = $src->$*;
-            }
-
-            when ( 'key' ) {
-
-                my $rparent = $point->parent;
-                my $parent
-                  = defined( $rparent )
-                  ? $rparent->ref
-                  : undef;
-
-                Data::Edit::Struct::failure::input::dest->throw(
-                    "key replacement requires a hash element\n" )
-                  unless is_hashref( $$parent );
-
-                my $old_key = $point->attrs->{key};
-
-                my $new_key = is_ref( $$src ) ? refaddr( $$src ) : $$src;
-
-                $$parent->{$new_key} = delete $$parent->{$old_key};
-            }
+        if ( $replace eq 'value' ) {
+            $point->ref->$* = $src->$*;
         }
 
-    }
+        elsif ( $replace eq 'key' ) {
 
+            my $rparent = $point->parent;
+            my $parent
+              = defined( $rparent )
+              ? $rparent->ref
+              : undef;
+
+            Data::Edit::Struct::failure::input::dest->throw(
+                "key replacement requires a hash element\n" )
+              unless is_hashref( $$parent );
+
+            my $old_key = $point->attrs->{key};
+
+            my $new_key = is_ref( $$src ) ? refaddr( $$src ) : $$src;
+
+            $$parent->{$new_key} = delete $$parent->{$old_key};
+        }
+        else {
+            Data::Edit::Struct::failure::internal->throw(
+                "_replace: unknown replace type: $replace" );
+        }
+    }
 }
 
 

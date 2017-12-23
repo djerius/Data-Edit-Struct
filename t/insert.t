@@ -4,7 +4,7 @@ use Test2::Bundle::Extended;
 use Test2::Tools::Explain;
 use Test2::API qw[ context ];
 
-use experimental qw[ postderef switch ];
+use experimental qw[ postderef ];
 
 use Data::Edit::Struct qw[ edit ];
 

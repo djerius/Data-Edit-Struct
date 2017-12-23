@@ -5,7 +5,7 @@ use warnings;
 
 use Test2::Bundle::Extended;
 
-use experimental qw[ postderef switch ];
+use experimental qw[ postderef ];
 
 
 use Data::Edit::Struct qw[ edit ];
