@@ -5,7 +5,7 @@ use warnings;
 
 use Test2::Bundle::Extended;
 
-use experimental qw[ postderef switch signatures ];
+use experimental qw[ postderef switch ];
 
 
 use Data::Edit::Struct qw[ edit ];
@@ -195,7 +195,9 @@ subtest 'coderef' => sub {
 
     edit(
         splice => {
-            sxfrm => sub ( $ctx, $spath, $args ) {
+            sxfrm => sub {
+
+		my ( $ctx, $spath, $args ) = @_;
 
                 my $src = $ctx->matchr( $spath );
                 die( "source path may not have multiple resolutions\n" )

@@ -4,7 +4,7 @@ use Test2::Bundle::Extended;
 use Test2::Tools::Explain;
 use Test2::API qw[ context ];
 
-use experimental qw[ postderef switch signatures ];
+use experimental qw[ postderef switch ];
 
 use Data::Edit::Struct qw[ edit ];
 
@@ -671,7 +671,9 @@ subtest auto => sub {
 
 };
 
-sub test_insert( %arg ) {
+sub test_insert {
+
+    my ( %arg ) = @_;
 
     my $ctx = context();
 
@@ -691,7 +693,11 @@ sub test_insert( %arg ) {
     return $ok;
 }
 
-sub _make_label ( $arg, $exclude = [] ) {
+sub _make_label {
+
+    my ( $arg, $exclude ) = @_;
+
+    $exclude //= [];
 
     my %args = %$arg;
 

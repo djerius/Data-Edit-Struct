@@ -3,7 +3,7 @@
 use Test2::Bundle::Extended;
 use Test2::API qw[ context ];
 
-use experimental qw[ postderef switch signatures ];
+use experimental qw[ postderef switch ];
 
 use Ref::Util qw[ is_arrayref ];
 use Data::Edit::Struct qw[ edit ];
@@ -283,7 +283,9 @@ subtest 'auto' => sub {
 };
 
 
-sub cmp_splice( %arg ) {
+sub cmp_splice {
+
+    my ( %arg ) = @_;
 
     my $ctx = context();
 

@@ -4,7 +4,7 @@ package Data::Edit::Struct;
 
 use strict;
 use warnings;
-use experimental qw[ postderef switch signatures ];
+use experimental qw[ postderef switch ];
 
 use Exporter 'import';
 
@@ -106,14 +106,19 @@ my %Validator
                               ) }
   keys %Validation;
 
-sub _dup_context ( $context ) {
+sub _dup_context {
+
+    my ( $context ) = @_;
+
     Data::DPath::Context->new( give_references => 1 )
       ->current_points( $context->current_points );
 }
 
 
 
-sub edit ( $action, $params ) {
+sub edit {
+
+    my  ( $action, $params ) = @_;
 
     Data::Edit::Struct::failure::input::param->throw( "no action specified\n" )
       unless defined $action;
@@ -184,7 +189,9 @@ sub edit ( $action, $params ) {
 }
 
 
-sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
+sub _sxfrm {
+
+    my ( $src, $spath, $sxfrm, $args ) = @_;
 
     return unless defined $src;
 
@@ -276,14 +283,18 @@ sub _sxfrm ( $src, $spath, $sxfrm, $args ) {
 }
 
 
-sub _clone ( $ref ) {
+sub _clone {
+
+    my ( $ref ) = @_;
 
     require Storable;
 
     return Storable::dclone( $ref );
 }
 
-sub _deref ( $ref, $stype, $clone ) {
+sub _deref {
+
+    my ( $ref, $stype, $clone ) = @_;
 
     $stype = is_plain_arrayref( $$ref )
       || is_plain_hashref( $$ref ) ? 'container' : 'element'
@@ -322,7 +333,9 @@ sub _deref ( $ref, $stype, $clone ) {
 
 }
 
-sub _pop ( $points, $length ) {
+sub _pop {
+
+    my ( $points, $length ) = @_;
 
     for my $point ( @$points ) {
 
@@ -337,7 +350,9 @@ sub _pop ( $points, $length ) {
     }
 }
 
-sub _shift ( $points, $length ) {
+sub _shift {
+
+    my ( $points, $length ) = @_;
 
     for my $point ( @$points ) {
         my $dest = $point->ref->$*;
@@ -348,7 +363,9 @@ sub _shift ( $points, $length ) {
     }
 }
 
-sub _splice ( $dtype, $points, $offset, $length, $replace ) {
+sub _splice {
+
+    my ( $dtype, $points, $offset, $length, $replace ) = @_;
 
     for my $point ( @$points ) {
 
@@ -401,7 +418,9 @@ sub _splice ( $dtype, $points, $offset, $length, $replace ) {
 }
 
 
-sub _insert ( $dtype, $points, $insert, $anchor, $pad, $offset, $src ) {
+sub _insert {
+
+    my ( $dtype, $points, $insert, $anchor, $pad, $offset, $src ) = @_;
 
     for my $point ( @$points ) {
 
@@ -473,7 +492,9 @@ sub _insert ( $dtype, $points, $insert, $anchor, $pad, $offset, $src ) {
     }
 }
 
-sub _insert_via_splice ( $insert, $anchor, $pad, $rdest, $idx, $offset, $src ) {
+sub _insert_via_splice {
+
+    my ( $insert, $anchor, $pad, $rdest, $idx, $offset, $src ) = @_;
 
     my $fididx;
 
@@ -531,7 +552,9 @@ sub _insert_via_splice ( $insert, $anchor, $pad, $rdest, $idx, $offset, $src ) {
     splice( @$$rdest, $idx, 0, @$src );
 }
 
-sub _delete ( $points, $length ) {
+sub _delete {
+
+    my ( $points, $length ) = @_;
 
     for my $point ( @$points ) {
 
@@ -564,7 +587,9 @@ sub _delete ( $points, $length ) {
 
 }
 
-sub _replace ( $points, $replace, $src ) {
+sub _replace {
+
+    my ( $points, $replace, $src ) = @_;
 
     for my $point ( @$points ) {
 
