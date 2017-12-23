@@ -3,8 +3,6 @@
 use Test2::Bundle::Extended;
 use Test2::API qw[ context ];
 
-use experimental qw[ postderef ];
-
 use Ref::Util qw[ is_arrayref ];
 use Data::Edit::Struct qw[ edit ];
 
@@ -306,7 +304,7 @@ sub cmp_splice {
     my $idx   = delete $arg{idx};
 
 
-    my @input = $input->@*;
+    my @input = @{ $input };
     splice(
         @input,
         ( $idx // 0 ) + ( $arg{offset} // 0 ),
@@ -314,12 +312,12 @@ sub cmp_splice {
         defined $arg{src}
         ? is_arrayref( $arg{src} )
           && ( ( $arg{stype} // 'container' ) eq 'container' )
-              ? $arg{src}->@*
+              ? @{ $arg{src} }
               : $arg{src}
         : (),
     );
 
-    my $dest = [ $input->@* ];
+    my $dest = [ @{ $input } ];
     edit(
         splice => {
             %arg, dest => $dest,

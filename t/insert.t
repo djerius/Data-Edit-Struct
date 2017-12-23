@@ -4,8 +4,6 @@ use Test2::Bundle::Extended;
 use Test2::Tools::Explain;
 use Test2::API qw[ context ];
 
-use experimental qw[ postderef ];
-
 use Data::Edit::Struct qw[ edit ];
 
 isa_ok(
@@ -25,7 +23,7 @@ subtest 'container' => sub {
         dest  => [ 0, 10, 20, 30, 40 ],
     );
 
-    my $maxidx = $defaults{dest}->$#*;
+    my $maxidx = $#{ $defaults{dest} };
 
     subtest 'dest => array' => sub {
 
@@ -35,7 +33,7 @@ subtest 'container' => sub {
 
             my %defaults = (
                 %defaults,
-                exclude => [ $defaults{exclude}->@*, 'dpath', 'insert' ],
+                exclude => [ @{ $defaults{exclude} }, 'dpath', 'insert' ],
                 dpath   => '/',
                 insert  => 'before',
             );
@@ -46,8 +44,8 @@ subtest 'container' => sub {
                 test_insert(
                     %defaults,
                     anchor  => 'first',
-                    exclude => [ $defaults{exclude}->@*, 'anchor' ],
-                    dest    => [ $defaults{dest}->@* ],
+                    exclude => [ @{ $defaults{exclude} }, 'anchor' ],
+                    dest    => [ @{ $defaults{dest} } ],
                     %$_
                   )
                   for ( {
@@ -93,8 +91,8 @@ subtest 'container' => sub {
                 test_insert(
                     %defaults,
                     anchor  => 'last',
-                    exclude => [ $defaults{exclude}->@*, 'anchor' ],
-                    dest    => [ $defaults{dest}->@* ],
+                    exclude => [ @{ $defaults{exclude} }, 'anchor' ],
+                    dest    => [ @{ $defaults{dest} } ],
                     %$_
                   )
                   for ( {
@@ -136,7 +134,7 @@ subtest 'container' => sub {
 
             my %defaults = (
                 %defaults,
-                exclude => [ $defaults{exclude}->@*, 'dpath', 'insert' ],
+                exclude => [ @{ $defaults{exclude} }, 'dpath', 'insert' ],
                 dpath   => '/',
                 insert  => 'after',
             );
@@ -147,8 +145,8 @@ subtest 'container' => sub {
                 test_insert(
                     %defaults,
                     anchor  => 'first',
-                    exclude => [ $defaults{exclude}->@*, 'anchor' ],
-                    dest    => [ $defaults{dest}->@* ],
+                    exclude => [ @{ $defaults{exclude} }, 'anchor' ],
+                    dest    => [ @{ $defaults{dest} } ],
                     %$_
                   )
                   for ( {
@@ -194,8 +192,8 @@ subtest 'container' => sub {
                 test_insert(
                     %defaults,
                     anchor  => 'last',
-                    exclude => [ $defaults{exclude}->@*, 'anchor' ],
-                    dest    => [ $defaults{dest}->@* ],
+                    exclude => [ @{ $defaults{exclude} }, 'anchor' ],
+                    dest    => [ @{ $defaults{dest} } ],
                     %$_
                   )
                   for ( {
@@ -303,7 +301,7 @@ subtest 'element' => sub {
         exclude => [ 'dest', 'dtype', 'src' ],
     );
 
-    my $maxidx = $defaults{dest}->$#*;
+    my $maxidx = $#{ $defaults{dest} };
 
     subtest 'dest => array' => sub {
 
@@ -311,9 +309,9 @@ subtest 'element' => sub {
 
             test_insert(
                 %defaults,
-                exclude => [ $defaults{exclude}->@*, 'insert' ],
+                exclude => [ @{ $defaults{exclude} }, 'insert' ],
                 insert  => 'before',
-                dest    => [ $defaults{dest}->@* ],
+                dest    => [ @{ $defaults{dest} } ],
                 %$_
               )
 
@@ -454,9 +452,9 @@ subtest 'element' => sub {
 
             test_insert(
                 %defaults,
-                exclude => [ $defaults{exclude}->@*, 'insert' ],
+                exclude => [ @{ $defaults{exclude} }, 'insert' ],
                 insert  => 'after',
-                dest    => [ $defaults{dest}->@* ],
+                dest    => [ @{ $defaults{dest} } ],
                 %$_
               )
 

@@ -11,7 +11,6 @@ requires "Type::Library" => "0";
 requires "Type::Utils" => "0";
 requires "Types::Standard" => "0";
 requires "custom::failures" => "0";
-requires "experimental" => "0";
 requires "failures" => "0";
 requires "perl" => "5.020";
 requires "strict" => "0";

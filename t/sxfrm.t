@@ -5,9 +5,6 @@ use warnings;
 
 use Test2::Bundle::Extended;
 
-use experimental qw[ postderef ];
-
-
 use Data::Edit::Struct qw[ edit ];
 
 use Scalar::Util qw[ refaddr ];
@@ -202,7 +199,7 @@ subtest 'coderef' => sub {
                 my $src = $ctx->matchr( $spath );
                 die( "source path may not have multiple resolutions\n" )
                   if @$src > 1;
-                return [ \{ $args->{key} => $src->[0]->$* } ];
+                return [ \{ $args->{key} => ${ $src->[0] } } ];
             },
             sxfrm_args => { key => 'goo' },
             dest       => \@dest,

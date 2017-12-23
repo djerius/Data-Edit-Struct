@@ -4,7 +4,6 @@ package Data::Edit::Struct;
 
 use strict;
 use warnings;
-use experimental qw[ postderef ];
 
 use Exporter 'import';
 
@@ -240,20 +239,20 @@ sub _sxfrm {
             Data::Edit::Struct::failure::input::src->throw(
                 "source path may not have multiple resolutions\n" )
               if @$src > 1;
-            $src{ $args->{key} } = $src->[0]->$*;
+            $src{ $args->{key} } = ${ $src->[0] };
         }
 
         else {
 
             $ctx->give_references( 0 );
-            for my $point ( $ctx->_search( $spath )->current_points->@* ) {
+            for my $point ( @{ $ctx->_search( $spath )->current_points } ) {
 
                 my $attrs = $point->attrs;
                 defined( my $key = $attrs->{key} // $attrs->{idx} )
                   or Data::Edit::Struct::failure::input::src->throw(
                     "source path returned multiple values; unable to convert into hash as element has no `key' or `idx' attribute\n"
                   );
-                $src{$key} = $point->ref->$*;
+                $src{$key} = ${ $point->ref };
             }
         }
 
@@ -328,7 +327,7 @@ sub _pop {
 
     for my $point ( @$points ) {
 
-        my $dest = $point->ref->$*;
+        my $dest = ${ $point->ref };
         Data::Edit::Struct::failure::input::dest->throw(
             "destination is not an array" )
           unless is_arrayref( $dest );
@@ -344,7 +343,7 @@ sub _shift {
     my ( $points, $length ) = @_;
 
     for my $point ( @$points ) {
-        my $dest = $point->ref->$*;
+        my $dest = ${ $point->ref };
         Data::Edit::Struct::failure::input::dest->throw(
             "destination is not an array" )
           unless is_arrayref( $dest );
@@ -383,7 +382,7 @@ sub _splice {
                 "point is not an array reference" )
               unless is_arrayref( $$ref );
 
-            splice( $$ref->@*, $offset, $length, @$replace );
+            splice( @{ $$ref }, $offset, $length, @$replace );
         }
 
         elsif ( $use eq 'element' ) {
@@ -491,7 +490,7 @@ sub _insert_via_splice {
         $fididx = 0;
     }
     elsif ( $anchor eq 'last' ) {
-        $fididx = $$rdest->$#*;
+        $fididx = $#{ $$rdest };
     }
     elsif ( $anchor eq 'index' ) {
         $fididx = $idx;
@@ -506,29 +505,29 @@ sub _insert_via_splice {
     $idx = $offset + $fididx;
 
     # make sure there's enough room.
-    my $maxidx = $$rdest->$#*;
+    my $maxidx = $#{ $$rdest };
 
     if ( $insert eq 'before' ) {
 
         if ( $idx < 0 ) {
-            unshift $$rdest->@*, ( $pad ) x ( -$idx );
+            unshift @{ $$rdest }, ( $pad ) x ( -$idx );
             $idx = 0;
         }
 
         elsif ( $idx > $maxidx + 1 ) {
-            push $$rdest->@*, ( $pad ) x ( $idx - $maxidx - 1 );
+            push @{ $$rdest }, ( $pad ) x ( $idx - $maxidx - 1 );
         }
     }
 
     elsif ( $insert eq 'after' ) {
 
         if ( $idx < 0 ) {
-            unshift $$rdest->@*, ( $pad ) x ( -$idx - 1 ) if $idx < -1;
+            unshift @{ $$rdest }, ( $pad ) x ( -$idx - 1 ) if $idx < -1;
             $idx = 0;
         }
 
         elsif ( $idx > $maxidx ) {
-            push $$rdest->@*, ( $pad ) x ( $idx - $maxidx );
+            push @{ $$rdest }, ( $pad ) x ( $idx - $maxidx );
             ++$idx;
         }
 
@@ -590,7 +589,7 @@ sub _replace {
           if $replace eq 'auto';
 
         if ( $replace eq 'value' ) {
-            $point->ref->$* = $src->$*;
+            ${ $point->ref } = ${ $src };
         }
 
         elsif ( $replace eq 'key' ) {
