@@ -53,7 +53,9 @@ my %source = (
     spath => { type => Str,       optional => 1 },
     stype => { type => UseDataAs, default  => 'auto' },
     sxfrm => {
-        type => Enum [ 'iterate', 'array', 'hash', 'error' ] | CodeRef,
+	      # ( Enum [] ) | CoderRef rather than Enum[] | CodeRef for
+	      # Perl < 5.14
+        type => ( Enum [ 'iterate', 'array', 'hash', 'error' ] ) | CodeRef,
         default => 'error'
     },
     sxfrm_args => {
