@@ -12,7 +12,7 @@ requires "Type::Utils" => "0";
 requires "Types::Standard" => "0";
 requires "custom::failures" => "0";
 requires "failures" => "0";
-requires "perl" => "5.020";
+requires "perl" => "5.008";
 requires "strict" => "0";
 requires "warnings" => "0";
 
@@ -25,8 +25,7 @@ on 'test' => sub {
   requires "Test2::Bundle::Extended" => "0";
   requires "Test2::Tools::Explain" => "0";
   requires "Test::More" => "0";
-  requires "blib" => "1.01";
-  requires "perl" => "5.020";
+  requires "perl" => "5.008";
 };
 
 on 'test' => sub {
