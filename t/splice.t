@@ -307,11 +307,11 @@ sub cmp_splice {
     my @input = @{ $input };
     splice(
         @input,
-        ( $idx // 0 ) + ( $arg{offset} // 0 ),
-        $arg{length} // 1,
+        ( $idx || 0 ) + ( $arg{offset} || 0 ),
+        $arg{length} || 1,
         defined $arg{src}
         ? is_arrayref( $arg{src} )
-          && ( ( $arg{stype} // 'container' ) eq 'container' )
+          && ( ( defined $arg{stype} ? $arg{stype} :  'container' ) eq 'container' )
               ? @{ $arg{src} }
               : $arg{src}
         : (),

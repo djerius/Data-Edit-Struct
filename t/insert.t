@@ -677,9 +677,9 @@ sub test_insert {
 
     my $expected = delete $arg{expected};
 
-    my @msg = ( delete $arg{msg} // () );
+    my @msg = ( delete $arg{msg} || () );
 
-    my $exclude = delete $arg{exclude} // [];
+    my $exclude = delete $arg{exclude} || [];
 
     my $label = join( ': ', @msg, _make_label( \%arg, $exclude ) );
 
@@ -695,7 +695,7 @@ sub _make_label {
 
     my ( $arg, $exclude ) = @_;
 
-    $exclude //= [];
+    $exclude = [] if ! defined $exclude;
 
     my %args = %$arg;
 

@@ -117,8 +117,6 @@ sub _dup_context {
       ->current_points( $context->current_points );
 }
 
-
-
 sub edit {
 
     my ( $action, $params ) = @_;
@@ -148,7 +146,7 @@ sub edit {
 
     elsif ( $action eq 'splice' ) {
 
-        $src //= [ \[] ];
+        $src = [ \[] ] if ! defined $src;
 
         _splice( $arg{dtype}, $points, $arg{offset}, $arg{length},
             _deref( $_, $arg{stype}, $arg{clone} ) )
@@ -250,7 +248,7 @@ sub _sxfrm {
             for my $point ( @{ $ctx->_search( $spath )->current_points } ) {
 
                 my $attrs = $point->attrs;
-                defined( my $key = $attrs->{key} // $attrs->{idx} )
+                defined( my $key = defined $attrs->{key} ? $attrs->{key} : $attrs->{idx} )
                   or Data::Edit::Struct::failure::input::src->throw(
                     "source path returned multiple values; unable to convert into hash as element has no `key' or `idx' attribute\n"
                   );
@@ -363,7 +361,7 @@ sub _splice {
 
         my $attrs = $point->can( 'attrs' );
 
-        my $idx = ( ( defined( $attrs ) && $point->$attrs ) // {} )->{idx};
+        my $idx = ( ( defined( $attrs ) && $point->$attrs ) ? $point->$attrs : {} )->{idx};
 
         my $use = $dtype;
 
@@ -379,7 +377,7 @@ sub _splice {
         }
 
         if ( $use eq 'container' ) {
-            $ref //= $point->ref;
+            $ref = $point->ref if ! defined $ref;
             Data::Edit::Struct::failure::input::dest->throw(
                 "point is not an array reference" )
               unless is_arrayref( $$ref );
@@ -436,7 +434,7 @@ sub _insert {
 
         if ( $use eq 'container' ) {
 
-            $ref //= $point->ref;
+            $ref = $point->ref if ! defined $ref;
 
             if ( is_hashref( $$ref ) ) {
 
@@ -469,7 +467,7 @@ sub _insert {
                 "point is not an array element" )
               unless defined $parent && is_arrayref( $$parent );
 
-            $idx //= ( $attrs // $point->attrs )->{idx};
+            $idx = ( defined $attrs ? $attrs : $point->attrs )->{idx} if ! defined $idx;
 
             _insert_via_splice( $insert, 'index', $pad, $parent, $idx,
                 $offset, $src );
