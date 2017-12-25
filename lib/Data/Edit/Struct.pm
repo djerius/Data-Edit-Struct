@@ -7,7 +7,7 @@ use warnings;
 
 use Exporter 'import';
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use Ref::Util qw[
   is_plain_arrayref is_arrayref
