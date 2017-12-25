@@ -2,6 +2,12 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.04      2017-12-24 13:06:38-05:00 America/New_York (TRIAL RELEASE)
+
+  [ ENHANCEMENTS ]
+
+    * now works with Perl 5.8.9 and above
+
 0.03      2017-06-15 14:12:11-04:00 America/New_York (TRIAL RELEASE)
 
   [ BUILD FIX ]
