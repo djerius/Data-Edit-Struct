@@ -4,7 +4,7 @@ Data::Edit::Struct - Edit a Perl structure addressed with a Data::DPath path
 
 # VERSION
 
-version 0.05
+version 0.06
 
 # SYNOPSIS
 
