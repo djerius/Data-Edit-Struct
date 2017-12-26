@@ -41,6 +41,12 @@ use Data::DPath qw[ dpath dpathr dpathi ];
 
 our @EXPORT_OK = qw[ edit ];
 
+#---------------------------------------------------------------------
+
+# Params::ValidationCompiler is used to validate the arguments passed
+# to the edit subroutine.  These hashes are used to codify validation
+# specifications which are used multiple times.
+
 my %dest = (
     dest  => { type => Context },
     dpath => { type => Str, default => '/' },
@@ -75,6 +81,9 @@ my %offset = (
         default => 0,
     } );
 
+# %Validation is a dispatch table for validation specifications for
+# the available edit actions. It is used below to create separate
+# validation routines for them.
 my %Validation = (
     pop    => { %dest, %length },
     shift  => { %dest, %length },
@@ -100,6 +109,7 @@ my %Validation = (
     },
 );
 
+# %Validator contains the validation routines, keyed off of the edit actions.
 my %Validator = map {
     $_ => validation_for(
         params           => $Validation{$_},
@@ -109,14 +119,9 @@ my %Validator = map {
   }
   keys %Validation;
 
-sub _dup_context {
+#---------------------------------------------------------------------
 
-    my ( $context ) = @_;
-
-    Data::DPath::Context->new( give_references => 1 )
-      ->current_points( $context->current_points );
-}
-
+# the primary entry point.
 sub edit {
 
     my ( $action, $params ) = @_;
@@ -163,7 +168,6 @@ sub edit {
           foreach @$src;
     }
 
-
     elsif ( $action eq 'delete' ) {
         _delete( $points, $arg{length} );
     }
@@ -187,7 +191,26 @@ sub edit {
     }
 }
 
+#---------------------------------------------------------------------
 
+# Searching a Data::DPath::Context object changes it, rather than
+# returning a new context as documented. Thus, we need to create
+# a new object for each search.
+#
+# See https://rt.cpan.org/Public/Bug/Display.html?id=120594
+
+sub _dup_context {
+
+    my ( $context ) = @_;
+
+    Data::DPath::Context->new( give_references => 1 )
+      ->current_points( $context->current_points );
+}
+
+#---------------------------------------------------------------------
+
+# extract source data from the source structure given a Data::Dpath
+# path or context and apply any user specified transforms to it.
 sub _sxfrm {
 
     my ( $src, $spath, $sxfrm, $args ) = @_;
@@ -276,15 +299,22 @@ sub _sxfrm {
     }
 }
 
+#---------------------------------------------------------------------
 
+# The default cloning algorithm
 sub _clone {
 
     my ( $ref ) = @_;
 
     require Storable;
-
     return Storable::dclone( $ref );
 }
+
+#---------------------------------------------------------------------
+
+# given a reference to the extracted source data, massage
+# it into the final form (e.g., container, element, cloned )
+# to be applied to the destination.
 
 sub _deref {
 
@@ -321,6 +351,8 @@ sub _deref {
       :                        $struct;
 }
 
+#---------------------------------------------------------------------
+
 sub _pop {
 
     my ( $points, $length ) = @_;
@@ -338,6 +370,8 @@ sub _pop {
     }
 }
 
+#---------------------------------------------------------------------
+
 sub _shift {
 
     my ( $points, $length ) = @_;
@@ -350,6 +384,8 @@ sub _shift {
         splice( @$dest, 0, $length );
     }
 }
+
+#---------------------------------------------------------------------
 
 sub _splice {
 
@@ -407,6 +443,7 @@ sub _splice {
     }
 }
 
+#---------------------------------------------------------------------
 
 sub _insert {
 
@@ -480,6 +517,8 @@ sub _insert {
     }
 }
 
+#---------------------------------------------------------------------
+
 sub _insert_via_splice {
 
     my ( $insert, $anchor, $pad, $rdest, $idx, $offset, $src ) = @_;
@@ -544,6 +583,8 @@ sub _insert_via_splice {
     splice( @$$rdest, $idx, 0, @$src );
 }
 
+#---------------------------------------------------------------------
+
 sub _delete {
 
     my ( $points, $length ) = @_;
@@ -578,6 +619,8 @@ sub _delete {
     }
 
 }
+
+#---------------------------------------------------------------------
 
 sub _replace {
 
