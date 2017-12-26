@@ -71,6 +71,7 @@ on 'develop' => sub {
   requires "Software::License::GPL_3" => "0";
   requires "Test::CPAN::Changes" => "0";
   requires "Test::CPAN::Meta" => "0";
+  requires "Test::CPAN::Meta::JSON" => "0";
   requires "Test::Fixme" => "0";
   requires "Test::More" => "0";
   requires "Test::NoBreakpoints" => "0";
