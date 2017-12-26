@@ -2,6 +2,12 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.05      2017-12-25 22:41:05-05:00 America/New_York
+
+    * improve internal documentation
+    * no functional changes from 0.04
+    * upgrade to stable
+
 0.04      2017-12-24 13:06:38-05:00 America/New_York (TRIAL RELEASE)
 
   [ ENHANCEMENTS ]
